@@ -22,7 +22,7 @@ mod lib_tests {
     }
 
     #[test]
-    fn test_simulate_center() {
+    fn test_simulate_mm() {
         let mut test = vec![
             false;9
         ];
@@ -38,7 +38,7 @@ mod lib_tests {
     }
 
     #[test]
-    fn test_simulate_br_center() {
+    fn test_simulate_br_mm() {
         let mut test = vec![false;9        ];
         simulate(&mut test, 4);
         simulate(&mut test, 8);
@@ -47,6 +47,21 @@ mod lib_tests {
             false,  true ,  false,
             true,   true,   false,
             false,  false,  true
+        ];
+
+        assert_eq!(test, result);
+    }
+
+    #[test]
+    fn test_simulate_ml_mr() {
+        let mut test = vec![false;9        ];
+        simulate(&mut test, 3);
+        simulate(&mut test, 5);
+        
+        let result: Vec<bool> = vec![
+            true,  false,  true,
+            true,  false,  true,
+            true,  false,  true
         ];
 
         assert_eq!(test, result);
