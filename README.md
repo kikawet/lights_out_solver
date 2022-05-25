@@ -1,7 +1,7 @@
 
 # Lights out solver
 
-CLI program created in Rust to solve [Lights out puzzle](https://mathworld.wolfram.com/LightsOutPuzzle.html).
+CLI program created in Rust to solve [Lights out puzzle](https://en.wikipedia.org/wiki/Lights_Out_(game)).
 
 It finds the minimal solution and you aswell run in simulation mode to check that the board is going to look after a number of steps.
 ## Usage/Examples
@@ -111,7 +111,7 @@ And you can aswell use `-v` to see the board after each step in the simulation
 Clone the project
 
 ```bash
-  git clone https://link-to-project
+  git clone https://github.com/kikawet/lights_out_solver
 ```
 
 Go to the project directory
