@@ -5,11 +5,11 @@ pub fn simulate(board: &mut Vec<bool>, position: usize) {
     board[position] = !board[position];
 
     let bottom = position + side_size;
-    if bottom < board.len() - 1 {
+    if bottom < board.len() {
         board[bottom] = !board[bottom]
     }
 
-    if position > side_size {
+    if position >= side_size {
         let top = position - side_size;
         board[top] = !board[top];
     }
