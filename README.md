@@ -1,7 +1,7 @@
 
 # Lights out solver
 
-CLI program created in Rust to solve [Lights out puzzle](https://en.wikipedia.org/wiki/Lights_Out_(game)).
+CLI program created in Rust to solve [Lights out puzzle](https://mathworld.wolfram.com/LightsOutPuzzle.html).
 
 It finds the minimal solution and you aswell run in simulation mode to check that the board is going to look after a number of steps.
 ## Usage/Examples
@@ -36,7 +36,7 @@ $ lights_out_solver 0 2 6 8
 Note that you can also enable verbose mode with the `-v` flag
 <details>
 <summary>$ lights_out_solver -v 0 2 6 8</summary>
-
+    
 ```cmd
 2022-05-24T22:51:16.582Z INFO [lights_out_solver] Verbose mode enabled
 2022-05-24T22:51:16.582Z DEBUG [lights_out_solver] Active indices: [0, 2, 6, 8]
@@ -140,3 +140,9 @@ To run tests, run the following command
 
 [MIT](https://choosealicense.com/licenses/mit/)
 
+
+## Related
+
+Release using github actions - [rust-build.action](https://github.com/rust-build/rust-build.action)
+
+Alternative method to solve the puzzle using polinomials instead of backtracking - [LightsOut.hh](https://www.keithschwarz.com/interesting/code/?dir=lights-out) by Keith Schwarz (htiek@cs.stanford.edu)
