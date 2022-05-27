@@ -90,7 +90,6 @@ fn main() {
             found_matches
                 .get_one::<String>("output_mode")
                 .unwrap()
-                .unwrap()
                 .to_string(),
             cols,
         );
