@@ -49,14 +49,23 @@ fn main() {
                 .multiple_values(true)
                 .takes_value(true)
                 .validator(|s| s.parse::<usize>()),
+        )
+        .arg(
+            Arg::new("output_mode")
+                .help("Sets the output mode")
+                .short('m')
+                .value_name("output_mode")
+                .takes_value(false)
+                .possible_values(["simple", "draw", "all"])
+                .default_value("draw"),
         );
 
-    let matches = cmd.get_matches_mut();
+    let found_matches = cmd.get_matches_mut();
 
-    set_up_logger(&matches);
+    set_up_logger(&found_matches);
 
-    let (active_nodes, rows, cols) = load_board_data(&matches);
-    let simulation_steps = load_simulation_data(&matches);
+    let (active_nodes, rows, cols) = load_board_data(&found_matches);
+    let simulation_steps = load_simulation_data(&found_matches);
 
     let total_nodes = rows * cols;
 
@@ -68,16 +77,49 @@ fn main() {
     debug!("Active indices: {:?}", active_nodes);
     debug!("Rows: {:?}", rows);
     debug!("Cols: {:?}", cols);
-    debug!("Board: {}", pretty_board(&board));
+    debug!("Board: {}", prettify_board(&board));
 
     validate_indices(&active_nodes, &mut cmd, rows, cols);
     validate_range_indices(&simulation_steps, &mut cmd, rows, cols);
 
-    if !matches.is_present("run_simulation") {
-        run_solver(board);
+    if !found_matches.is_present("run_simulation") {
+        let solution = run_solver(&board);
+        print_solution(
+            &board,
+            solution,
+            found_matches
+                .get_one::<String>("output_mode")
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            cols,
+        );
     } else {
         run_simulation(board, simulation_steps);
     }
+}
+
+fn print_solution(board: &Vec<bool>, solution: Option<Vec<usize>>, draw_mode: String, cols: usize) {
+    debug!("Draw mode: {}", draw_mode);
+
+    if draw_mode == "simple" || draw_mode == "all"{
+        if let Some(result) = &solution {
+            println!("{:?}", result);
+        } else {
+            println!("{:?}", &solution);
+        }
+    }
+
+    if draw_mode == "draw" || draw_mode == "all"{
+        let mut mapped_board = map_board(board);
+    
+            for (order, position) in solution.or(None).unwrap_or_default().into_iter().enumerate() {
+                mapped_board[position] = order.to_string();
+            }
+
+            println!("{}", board_to_str(&mapped_board));
+    }
+
 }
 
 fn load_board_data(matches: &clap::ArgMatches) -> (Vec<usize>, usize, usize) {
@@ -103,16 +145,12 @@ fn set_up_logger(matches: &clap::ArgMatches) {
     }
 }
 
-fn run_solver(board: Vec<bool>) {
+fn run_solver(board: &Vec<bool>) -> Option<Vec<usize>> {
     debug!("Searching for solution ...");
-    let solution = solve(&board);
-    debug!("Final solution: {:?}", solution);
+    let solution = solve(board);
+    debug!("Final solution: {:?}", &solution);
 
-    if let Some(result) = solution {
-        println!("{:?}", result);
-    } else {
-        println!("{:?}", solution);
-    }
+    solution
 }
 
 fn validate_range_indices(
@@ -155,31 +193,41 @@ fn validate_indices(active_nodes: &Vec<usize>, cmd: &mut clap::Command, rows: us
 fn run_simulation(board: Vec<bool>, simulation_steps: Vec<usize>) {
     let mut board = board;
 
-    debug!("Board before the simulation:\n {}", pretty_board(&board));
+    debug!("Board before the simulation:\n {}", prettify_board(&board));
     debug!("Steps to simulate: {:?}", simulation_steps);
 
     for (step, node_to_trigger) in simulation_steps.iter().enumerate() {
         simulate(&mut board, *node_to_trigger);
-        debug!("Step {}:\n {}", step, pretty_board(&board));
+        debug!("Step {}:\n {}", step, prettify_board(&board));
     }
 
-    debug!("Board after simulation: {}", pretty_board(&board));
+    debug!("Board after simulation: {}", prettify_board(&board));
 
-    print!("{}", pretty_board(&board));
+    print!("{}", prettify_board(&board));
 }
 
-fn pretty_board(board: &Vec<bool>) -> String {
+fn prettify_board(board: &Vec<bool>) -> String {
+    let mapped_board = map_board(board);
+    
+    board_to_str(&mapped_board)
+}
+
+fn board_to_str(board_as_char: &Vec<String>) -> String{
     let mut board_string = String::new();
-    for (index, node) in board.iter().enumerate() {
+    for (index, node) in board_as_char.iter().enumerate() {
         if index % 3 == 0 {
             board_string.push_str("\n");
         }
-        if *node {
-            board_string.push_str("#");
-        } else {
-            board_string.push_str("·");
-        }
+
+        board_string.push_str(node);
     }
 
     board_string
+}
+
+fn map_board(board: &Vec<bool>) -> Vec<String> {
+    board
+        .iter()
+        .map(|node| if *node { "#".to_string() } else { "·".to_string() })
+        .collect()
 }
