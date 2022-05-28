@@ -6,6 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { git = "https://github.com/clap-rs/clap/" }
+clap = { version="3.1.18", git = "https://github.com/clap-rs/clap/" }
 log = "0.4.17"
 simple_logger = "2.1.0"
