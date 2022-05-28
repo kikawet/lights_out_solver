@@ -121,4 +121,28 @@ mod solver_tests {
 #[cfg(test)]
 mod args_tests {
 
+    use clap::*;
+
+    use crate::args::*;
+
+    struct Setup {
+        cmd: Command<'static>,
+    }
+    
+    impl Setup {
+        fn new() -> Self {
+            Self {
+                cmd: init_app(),
+            }
+        }
+    }
+
+    #[test]
+    fn test_name() {
+        let cmd = Setup::new().cmd;
+
+        assert_eq!(cmd.get_name(), "Lights Out Puzzle Solver");
+        
+    }
+
 }
