@@ -90,7 +90,7 @@ fn main() {
             found_matches
                 .get_one::<String>("output_mode")
                 .unwrap()
-                .to_string(),
+                .unwrap(),
             cols,
         );
     } else {
@@ -98,10 +98,15 @@ fn main() {
     }
 }
 
-fn print_solution(board: &Vec<bool>, solution: Option<Vec<usize>>, draw_mode: String, cols: usize) {
+fn print_solution(
+    board: &Vec<bool>,
+    solution: Option<Vec<usize>>,
+    draw_mode: &String,
+    cols: usize,
+) {
     debug!("Draw mode: {}", draw_mode);
 
-    if draw_mode == "simple" || draw_mode == "all"{
+    if draw_mode == "simple" || draw_mode == "all" {
         if let Some(result) = &solution {
             println!("{:?}", result);
         } else {
@@ -109,16 +114,20 @@ fn print_solution(board: &Vec<bool>, solution: Option<Vec<usize>>, draw_mode: St
         }
     }
 
-    if draw_mode == "draw" || draw_mode == "all"{
+    if draw_mode == "draw" || draw_mode == "all" {
         let mut mapped_board = map_board(board);
-    
-            for (order, position) in solution.or(None).unwrap_or_default().into_iter().enumerate() {
-                mapped_board[position] = order.to_string();
-            }
 
-            println!("{}", board_to_str(&mapped_board));
+        for (order, position) in solution
+            .or(None)
+            .unwrap_or_default()
+            .into_iter()
+            .enumerate()
+        {
+            mapped_board[position] = order.to_string();
+        }
+
+        println!("{}", board_to_str(&mapped_board));
     }
-
 }
 
 fn load_board_data(matches: &clap::ArgMatches) -> (Vec<usize>, usize, usize) {
@@ -207,11 +216,11 @@ fn run_simulation(board: Vec<bool>, simulation_steps: Vec<usize>) {
 
 fn prettify_board(board: &Vec<bool>) -> String {
     let mapped_board = map_board(board);
-    
+
     board_to_str(&mapped_board)
 }
 
-fn board_to_str(board_as_char: &Vec<String>) -> String{
+fn board_to_str(board_as_char: &Vec<String>) -> String {
     let mut board_string = String::new();
     for (index, node) in board_as_char.iter().enumerate() {
         if index % 3 == 0 {
@@ -227,6 +236,12 @@ fn board_to_str(board_as_char: &Vec<String>) -> String{
 fn map_board(board: &Vec<bool>) -> Vec<String> {
     board
         .iter()
-        .map(|node| if *node { "#".to_string() } else { "·".to_string() })
+        .map(|node| {
+            if *node {
+                "#".to_string()
+            } else {
+                "·".to_string()
+            }
+        })
         .collect()
 }
