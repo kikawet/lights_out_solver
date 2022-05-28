@@ -2,7 +2,7 @@ use lights_out_solver::solver::{simulate, solve};
 use lights_out_solver::args::init_app;
 use log::{debug, info};
 
-use clap::{ErrorKind};
+use clap::{ErrorKind, ArgMatches};
 
 use simple_logger::SimpleLogger;
 
@@ -78,20 +78,22 @@ fn print_solution(
     }
 }
 
-fn load_board_data(matches: &clap::ArgMatches) -> (Vec<usize>, usize, usize) {
-    let mut nodes: Vec<usize> = matches.values_of_t("NODES").unwrap_or_default();
+fn load_board_data(matches: &
+    ArgMatches) -> (Vec<usize>, usize, usize) {
+    let mut nodes: Vec<usize> = matches.get_many("NODES").unwrap_or_default().copied().collect();
     nodes.sort_unstable();
     nodes.dedup();
-    let rows: usize = matches.value_of_t("rows").unwrap();
-    let cols: usize = matches.value_of_t("cols").unwrap();
+    let rows: usize = *matches.get_one("rows").unwrap();
+    let cols: usize = *matches.get_one("cols").unwrap();
     (nodes, rows, cols)
 }
 
-fn load_simulation_data(matches: &clap::ArgMatches) -> Vec<usize> {
-    matches.values_of_t("run_simulation").unwrap_or_default()
+fn load_simulation_data(matches: &ArgMatches) -> Vec<usize> {
+    matches.get_many("run_simulation").unwrap_or_default().copied().collect()
 }
 
-fn set_up_logger(matches: &clap::ArgMatches) {
+fn set_up_logger(matches: &
+    ArgMatches) {
     if matches.is_present("verbose") {
         SimpleLogger::new()
             .with_level(log::LevelFilter::Debug)
