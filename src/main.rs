@@ -87,9 +87,8 @@ fn main() {
         print_solution(
             &board,
             solution,
-            found_matches
+            found_matches//.value_of_t("output_mode").unwrap(),
                 .get_one::<String>("output_mode")
-                .unwrap()
                 .unwrap(),
             cols,
         );
