@@ -1,7 +1,8 @@
 pub mod solver;
+pub mod args;
 
 #[cfg(test)]
-mod lib_tests {
+mod solver_tests {
     use crate::solver::*;
 
     #[test]
@@ -114,5 +115,10 @@ mod lib_tests {
 
         assert_eq!(solution, [4]);
     }
+
+}
+
+#[cfg(test)]
+mod args_tests {
 
 }
