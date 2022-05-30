@@ -1,49 +1,35 @@
-use lights_out_solver::solver::{simulate, solve};
 use lights_out_solver::args::{init_app, ProgramArgs};
+use lights_out_solver::solver::{simulate, solve};
+use lights_out_solver::program::{Program, self};
 use log::{debug, info};
 
-use clap::{ErrorKind, ArgMatches};
+use clap::{ArgMatches, Command, ErrorKind};
 
 use simple_logger::SimpleLogger;
 
 fn main() {
-    let mut cmd = init_app();
+    let mut program = Program::new(init_app()) ;
 
-    let found_matches = cmd.get_matches_mut();
+    // set_up_logger(&program);
 
-    set_up_logger(&found_matches);
+    
 
-    let (active_nodes, rows, cols) = load_board_data(&found_matches);
-    let simulation_steps = load_simulation_data(&found_matches);
+    // validate_indices(&active_nodes, &mut program.cmd, rows, cols);
+    // validate_range_indices(&simulation_steps, &mut program.cmd, rows, cols);
 
-    let total_nodes = rows * cols;
-
-    let mut board: Vec<bool> = vec![false; total_nodes];
-    for position in &active_nodes {
-        board[*position] = true;
-    }
-
-    debug!("Active indices: {:?}", active_nodes);
-    debug!("Rows: {:?}", rows);
-    debug!("Cols: {:?}", cols);
-    debug!("Board: {}", prettify_board(&board));
-
-    validate_indices(&active_nodes, &mut cmd, rows, cols);
-    validate_range_indices(&simulation_steps, &mut cmd, rows, cols);
-
-    if !found_matches.is_present(ProgramArgs::RunSimulation.id()) {
-        let solution = run_solver(&board);
-        print_solution(
-            &board,
-            solution,
-            found_matches
-                .get_one::<String>(ProgramArgs::DisplayMode.name())
-                .unwrap(),
-            cols,
-        );
-    } else {
-        run_simulation(board, simulation_steps);
-    }
+    // if !program.matches.is_present(ProgramArgs::RunSimulation.id()) {
+    //     let solution = run_solver(&board);
+    //     print_solution(
+    //         &board,
+    //         solution,
+    //         program.matches
+    //             .get_one::<String>(ProgramArgs::DisplayMode.name())
+    //             .unwrap(),
+    //         cols,
+    //     );
+    // } else {
+    //     run_simulation(board, simulation_steps);
+    // }
 }
 
 fn print_solution(
@@ -63,7 +49,7 @@ fn print_solution(
     }
 
     if draw_mode == "draw" || draw_mode == "all" {
-        let mut mapped_board = map_board(board);
+        let mut mapped_board = vec![];//map_board(board);
 
         for (order, position) in solution
             .or(None)
@@ -74,27 +60,12 @@ fn print_solution(
             mapped_board[position] = order.to_string();
         }
 
-        println!("{}", board_to_str(&mapped_board));
+        // println!("{}", board_to_str(&mapped_board));
     }
 }
 
-fn load_board_data(matches: &
-    ArgMatches) -> (Vec<usize>, usize, usize) {
-    let mut nodes: Vec<usize> = matches.get_many(ProgramArgs::Lights.name()).unwrap_or_default().copied().collect();
-    nodes.sort_unstable();
-    nodes.dedup();
-    let rows: usize = *matches.get_one(ProgramArgs::Rows.name()).unwrap();
-    let cols: usize = *matches.get_one(ProgramArgs::Cols.name()).unwrap();
-    (nodes, rows, cols)
-}
-
-fn load_simulation_data(matches: &ArgMatches) -> Vec<usize> {
-    matches.get_many(ProgramArgs::RunSimulation.name()).unwrap_or_default().copied().collect()
-}
-
-fn set_up_logger(matches: &
-    ArgMatches) {
-    if matches.is_present(ProgramArgs::Verbose.id()) {
+fn set_up_logger(program: &Program) {
+    if program.is_enabled(ProgramArgs::Verbose.id()) {
         SimpleLogger::new()
             .with_level(log::LevelFilter::Debug)
             .init()
@@ -151,47 +122,16 @@ fn validate_indices(active_nodes: &Vec<usize>, cmd: &mut clap::Command, rows: us
 fn run_simulation(board: Vec<bool>, simulation_steps: Vec<usize>) {
     let mut board = board;
 
-    debug!("Board before the simulation:\n {}", prettify_board(&board));
+    // debug!("Board before the simulation:\n {}", prettify_board(&board));
     debug!("Steps to simulate: {:?}", simulation_steps);
 
     for (step, node_to_trigger) in simulation_steps.iter().enumerate() {
         simulate(&mut board, *node_to_trigger);
-        debug!("Step {}:\n {}", step, prettify_board(&board));
+        // debug!("Step {}:\n {}", step, prettify_board(&board));
     }
 
-    debug!("Board after simulation: {}", prettify_board(&board));
+    // debug!("Board after simulation: {}", prettify_board(&board));
 
-    print!("{}", prettify_board(&board));
+    // print!("{}", prettify_board(&board));
 }
 
-fn prettify_board(board: &Vec<bool>) -> String {
-    let mapped_board = map_board(board);
-
-    board_to_str(&mapped_board)
-}
-
-fn board_to_str(board_as_char: &Vec<String>) -> String {
-    let mut board_string = String::new();
-    for (index, node) in board_as_char.iter().enumerate() {
-        if index % 3 == 0 {
-            board_string.push_str("\n");
-        }
-
-        board_string.push_str(node);
-    }
-
-    board_string
-}
-
-fn map_board(board: &Vec<bool>) -> Vec<String> {
-    board
-        .iter()
-        .map(|node| {
-            if *node {
-                "#".to_string()
-            } else {
-                "·".to_string()
-            }
-        })
-        .collect()
-}
