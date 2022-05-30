@@ -82,42 +82,6 @@ fn run_solver(board: &Vec<bool>) -> Option<Vec<usize>> {
     solution
 }
 
-fn validate_range_indices(
-    active_nodes: &Vec<usize>,
-    cmd: &mut clap::Command,
-    rows: usize,
-    cols: usize,
-) {
-    let max_value = rows * cols;
-
-    if let Some(out_of_range) = active_nodes.iter().find(|&&it| it > max_value) {
-        cmd.error(
-            ErrorKind::ArgumentConflict,
-            format!(
-                "Index {} out of range for a {}x{} size",
-                out_of_range, rows, cols
-            ),
-        )
-        .exit();
-    }
-}
-
-fn validate_indices(active_nodes: &Vec<usize>, cmd: &mut clap::Command, rows: usize, cols: usize) {
-    let max_nodes = rows * cols;
-
-    if active_nodes.len() > max_nodes {
-        cmd.error(
-            ErrorKind::ArgumentConflict,
-            format!(
-                "Too many parameters given. The maximum number of nodes is {}",
-                max_nodes
-            ),
-        )
-        .exit();
-    }
-
-    validate_range_indices(active_nodes, cmd, rows, cols);
-}
 
 fn run_simulation(board: Vec<bool>, simulation_steps: Vec<usize>) {
     let mut board = board;
