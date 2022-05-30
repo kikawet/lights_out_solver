@@ -1,5 +1,5 @@
 use lights_out_solver::solver::{simulate, solve};
-use lights_out_solver::args::init_app;
+use lights_out_solver::args::{init_app, ProgramArgs};
 use log::{debug, info};
 
 use clap::{ErrorKind, ArgMatches};
@@ -31,13 +31,13 @@ fn main() {
     validate_indices(&active_nodes, &mut cmd, rows, cols);
     validate_range_indices(&simulation_steps, &mut cmd, rows, cols);
 
-    if !found_matches.is_present("run_simulation") {
+    if !found_matches.is_present(ProgramArgs::RunSimulation.id()) {
         let solution = run_solver(&board);
         print_solution(
             &board,
             solution,
-            found_matches//.value_of_t("output_mode").unwrap(),
-                .get_one::<String>("output_mode")
+            found_matches
+                .get_one::<String>(ProgramArgs::DisplayMode.name())
                 .unwrap(),
             cols,
         );
@@ -80,21 +80,21 @@ fn print_solution(
 
 fn load_board_data(matches: &
     ArgMatches) -> (Vec<usize>, usize, usize) {
-    let mut nodes: Vec<usize> = matches.get_many("NODES").unwrap_or_default().copied().collect();
+    let mut nodes: Vec<usize> = matches.get_many(ProgramArgs::Lights.name()).unwrap_or_default().copied().collect();
     nodes.sort_unstable();
     nodes.dedup();
-    let rows: usize = *matches.get_one("rows").unwrap();
-    let cols: usize = *matches.get_one("cols").unwrap();
+    let rows: usize = *matches.get_one(ProgramArgs::Rows.name()).unwrap();
+    let cols: usize = *matches.get_one(ProgramArgs::Cols.name()).unwrap();
     (nodes, rows, cols)
 }
 
 fn load_simulation_data(matches: &ArgMatches) -> Vec<usize> {
-    matches.get_many("run_simulation").unwrap_or_default().copied().collect()
+    matches.get_many(ProgramArgs::RunSimulation.name()).unwrap_or_default().copied().collect()
 }
 
 fn set_up_logger(matches: &
     ArgMatches) {
-    if matches.is_present("verbose") {
+    if matches.is_present(ProgramArgs::Verbose.id()) {
         SimpleLogger::new()
             .with_level(log::LevelFilter::Debug)
             .init()
