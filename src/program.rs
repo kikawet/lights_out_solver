@@ -1,9 +1,11 @@
 use crate::args::ProgramArgs;
-use clap::{ArgMatches, Command};
+use clap::{ArgMatches, Command, ErrorKind};
 use log::{debug, info};
 pub struct Program {
     cmd: Command<'static>,
     matches: ArgMatches,
+    active_lights: Vec<usize>,
+    simulation_steps: Vec<usize>,
     board: Vec<bool>,
     cols: usize,
     rows: usize,
@@ -16,11 +18,14 @@ impl Program {
         Self {
             cmd,
             matches,
+            active_lights: todo!(),
+            simulation_steps: todo!(),
             board: todo!(),
             cols: todo!(),
             rows: todo!(),
         }
         .load_data()
+        .validate_data()
     }
 
     fn load_data(mut self) -> Self {
@@ -39,6 +44,8 @@ impl Program {
         debug!("Cols: {:?}", cols);
         debug!("Board: {}", self.prettify_board(&board));
 
+        self.active_lights = active_nodes;
+        self.simulation_steps = simulation_steps;
         self.board = board;
         self.cols = cols;
         self.rows = rows;
@@ -46,7 +53,7 @@ impl Program {
         self
     }
 
-    pub fn is_enabled(& self, id: &str) -> bool{
+    pub fn is_enabled(&self, id: &str) -> bool {
         self.matches.is_present(id)
     }
 
@@ -69,6 +76,55 @@ impl Program {
             .unwrap_or_default()
             .copied()
             .collect()
+    }
+
+    fn validate_data(mut self) -> Self {
+        Self::validate_indices(&self.active_lights, &mut self.cmd, self.rows, self.cols);
+        Self::validate_range_indices(&self.simulation_steps, &mut self.cmd, self.rows, self.cols);
+
+        self
+    }
+
+    fn validate_range_indices(
+        active_nodes: &Vec<usize>,
+        cmd: &mut clap::Command,
+        rows: usize,
+        cols: usize,
+    ) {
+        let max_value = rows * cols;
+
+        if let Some(out_of_range) = active_nodes.iter().find(|&&it| it > max_value) {
+            cmd.error(
+                ErrorKind::ArgumentConflict,
+                format!(
+                    "Index {} out of range for a {}x{} size",
+                    out_of_range, rows, cols
+                ),
+            )
+            .exit();
+        }
+    }
+
+    fn validate_indices(
+        active_nodes: &Vec<usize>,
+        cmd: &mut clap::Command,
+        rows: usize,
+        cols: usize,
+    ) {
+        let max_nodes = rows * cols;
+
+        if active_nodes.len() > max_nodes {
+            cmd.error(
+                ErrorKind::ArgumentConflict,
+                format!(
+                    "Too many parameters given. The maximum number of nodes is {}",
+                    max_nodes
+                ),
+            )
+            .exit();
+        }
+
+        Self::validate_range_indices(active_nodes, cmd, rows, cols);
     }
 
     fn prettify_board(&self, board: &Vec<bool>) -> String {
