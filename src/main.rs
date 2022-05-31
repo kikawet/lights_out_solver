@@ -1,9 +1,6 @@
 use lights_out_solver::args::{init_app, ProgramArgs};
-use lights_out_solver::solver::{simulate, solve};
-use lights_out_solver::program::{Program, self};
-use log::{debug, info};
-
-use clap::{ArgMatches, Command, ErrorKind};
+use lights_out_solver::program::Program;
+use log::info;
 
 use simple_logger::SimpleLogger;
 
