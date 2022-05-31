@@ -47,7 +47,7 @@ impl ProgramArgs {
 
     fn help(self) -> &'static str{
         match self {
-            ProgramArgs::Lights => "Indexes of the active lights (range from 0 to [cols]*[rows])",
+            ProgramArgs::Lights => "Indexes of the active lights (range from 1 to [cols]*[rows])",
             ProgramArgs::Rows => "The number of rows",
             ProgramArgs::Cols => "The number of columns",
             ProgramArgs::Verbose => "Enable the debug logs",
@@ -129,12 +129,12 @@ pub fn init_app() -> Command<'static> {
             .value_parser(PossibleValuesParser::new(["simple", "draw", "all"]))
             .default_value("draw"),
     )
-    // .arg(
-    //     new_arg!(ProgramArgs::InputMode)
-    //         .takes_value(true)
-    //         .value_parser(PossibleValuesParser::new(["tl", "tr", "bl", "br"]))
-    //         .multiple_values(false)
-    //         .multiple_occurrences(false)
-    //         .default_value("bl"),
-    // )
+    .arg(
+        new_arg!(ProgramArgs::InputMode)
+            .takes_value(true)
+            .value_parser(PossibleValuesParser::new(["tl", "tr", "bl", "br"]))
+            .multiple_values(false)
+            .multiple_occurrences(false)
+            .default_value("bl"),
+    )
 }
