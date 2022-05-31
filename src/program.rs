@@ -1,6 +1,7 @@
 use crate::args::ProgramArgs;
+use crate::solver::{simulate, solve};
 use clap::{ArgMatches, Command, ErrorKind};
-use log::{debug, info};
+use log::debug;
 pub struct Program {
     cmd: Command<'static>,
     matches: ArgMatches,
@@ -18,39 +19,39 @@ impl Program {
         Self {
             cmd,
             matches,
-            active_lights: todo!(),
-            simulation_steps: todo!(),
-            board: todo!(),
-            cols: todo!(),
-            rows: todo!(),
+            active_lights: vec![],
+            simulation_steps: vec![],
+            board: vec![],
+            cols: 0,
+            rows: 0,
         }
-        .load_data()
-        .validate_data()
     }
 
-    fn load_data(mut self) -> Self {
+    pub fn load_data(&mut self) {
         let (active_nodes, rows, cols) = self.load_board_data(&self.matches);
         let simulation_steps = self.load_simulation_data(&self.matches);
 
         let total_nodes = rows * cols;
 
-        let mut board: Vec<bool> = vec![false; total_nodes];
-        for position in &active_nodes {
-            board[*position] = true;
-        }
-
-        debug!("Active indices: {:?}", active_nodes);
-        debug!("Rows: {:?}", rows);
-        debug!("Cols: {:?}", cols);
-        debug!("Board: {}", self.prettify_board(&board));
-
         self.active_lights = active_nodes;
         self.simulation_steps = simulation_steps;
-        self.board = board;
         self.cols = cols;
         self.rows = rows;
 
-        self
+        debug!("Active indices: {:?}", self.active_lights);
+        debug!("Rows: {:?}", self.rows);
+        debug!("Cols: {:?}", self.cols);
+
+        self.validate_data();
+
+        let mut board: Vec<bool> = vec![false; total_nodes];
+        for position in &self.active_lights {
+            board[*position] = true;
+        }
+
+        self.board = board;
+
+        debug!("Board: {}", self.prettify_board(&self.board));
     }
 
     pub fn is_enabled(&self, id: &str) -> bool {
@@ -59,7 +60,7 @@ impl Program {
 
     fn load_board_data(&self, matches: &ArgMatches) -> (Vec<usize>, usize, usize) {
         let mut nodes: Vec<usize> = matches
-            .get_many(ProgramArgs::Lights.name())
+            .get_many::<usize>(ProgramArgs::Lights.name())
             .unwrap_or_default()
             .copied()
             .collect();
@@ -78,20 +79,19 @@ impl Program {
             .collect()
     }
 
-    fn validate_data(mut self) -> Self {
+    fn validate_data(&mut self) {
+        // @TODO: make validations non-static
         Self::validate_indices(&self.active_lights, &mut self.cmd, self.rows, self.cols);
         Self::validate_range_indices(&self.simulation_steps, &mut self.cmd, self.rows, self.cols);
-
-        self
     }
 
     fn validate_range_indices(
         active_nodes: &Vec<usize>,
-        cmd: &mut clap::Command,
+        cmd: &mut Command,
         rows: usize,
         cols: usize,
     ) {
-        let max_value = rows * cols;
+        let max_value = rows * cols - 1;
 
         if let Some(out_of_range) = active_nodes.iter().find(|&&it| it > max_value) {
             cmd.error(
@@ -105,12 +105,7 @@ impl Program {
         }
     }
 
-    fn validate_indices(
-        active_nodes: &Vec<usize>,
-        cmd: &mut clap::Command,
-        rows: usize,
-        cols: usize,
-    ) {
+    fn validate_indices(active_nodes: &Vec<usize>, cmd: &mut Command, rows: usize, cols: usize) {
         let max_nodes = rows * cols;
 
         if active_nodes.len() > max_nodes {
@@ -136,8 +131,8 @@ impl Program {
     fn board_to_str(&self, board_as_char: &Vec<String>) -> String {
         let mut board_string = String::new();
         for (index, node) in board_as_char.iter().enumerate() {
-            if index % 3 == 0 {
-                board_string.push_str("\n");
+            if index % self.cols == 0 {
+                board_string.push('\n');
             }
 
             board_string.push_str(node);
@@ -157,5 +152,76 @@ impl Program {
                 }
             })
             .collect()
+    }
+
+    pub fn run(&mut self) {
+        self.load_data();
+
+        if !self.is_enabled(ProgramArgs::RunSimulation.id()) {
+            let solution = self.run_solver(&self.board);
+            self.print_solution(
+                &self.board,
+                solution,
+                self.matches
+                    .get_one::<String>(ProgramArgs::DisplayMode.name())
+                    .unwrap(),
+            );
+        } else {
+            self.run_simulation(&self.board, &self.simulation_steps);
+        }
+    }
+
+    fn print_solution(&self, board: &Vec<bool>, solution: Option<Vec<usize>>, draw_mode: &String) {
+        debug!("Draw mode: {}", draw_mode);
+
+        if draw_mode == "simple" || draw_mode == "all" {
+            if let Some(result) = &solution {
+                println!("{:?}", result);
+            } else {
+                println!("{:?}", &solution);
+            }
+        }
+
+        if draw_mode == "draw" || draw_mode == "all" {
+            let mut mapped_board = self.map_board(board);
+
+            for (order, position) in solution
+                .or(None)
+                .unwrap_or_default()
+                .into_iter()
+                .enumerate()
+            {
+                mapped_board[position] = order.to_string();
+            }
+
+            println!("{}", self.board_to_str(&mapped_board));
+        }
+    }
+
+    fn run_solver(&self, board: &Vec<bool>) -> Option<Vec<usize>> {
+        debug!("Searching for solution ...");
+        let solution = solve(board);
+        debug!("Final solution: {:?}", &solution);
+
+        solution
+    }
+
+    fn run_simulation(&self, board: &Vec<bool>, simulation_steps: &Vec<usize>) {
+        let mut board = board.clone();
+
+        debug!(
+            "Board before the simulation:\n {}",
+            self.prettify_board(&board)
+        );
+        debug!("Steps to simulate: {:?}", simulation_steps);
+
+        for (step, node_to_trigger) in simulation_steps.iter().enumerate() {
+            simulate(&mut board, *node_to_trigger);
+            debug!("Step {}:\n {}", step, self.prettify_board(&board));
+        }
+
+        debug!("Board after simulation: {}", self.prettify_board(&board));
+
+        print!("{}", self.prettify_board(&board));
     }
 }
