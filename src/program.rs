@@ -15,6 +15,9 @@ pub struct Program {
 impl Program {
     pub fn new(mut cmd: Command<'static>) -> Self {
         let matches = cmd.get_matches_mut();
+        // let arg_vec = vec!["lights_out_solver", "-v", "7","9", "1","3"];
+        // let matches = cmd.try_get_matches_from_mut(arg_vec)
+        // .unwrap_or_else(|e| e.exit());
 
         Self {
             cmd,
@@ -37,6 +40,37 @@ impl Program {
         self.simulation_steps = simulation_steps;
         self.cols = cols;
         self.rows = rows;
+
+        debug!(
+            "Input mode: {:?}",
+            self.matches
+                .get_one::<String>(ProgramArgs::InputMode.name())
+                .unwrap()
+        );
+
+        Self::rotate_light_indices(
+            &mut self.active_lights,
+            self.cols,
+            self.rows,
+            self.matches
+                .get_one::<String>(ProgramArgs::InputMode.name())
+                .unwrap()
+                .to_string(),
+        );
+
+        Self::rotate_light_indices(
+            &mut self.simulation_steps,
+            self.cols,
+            self.rows,
+            self.matches
+                .get_one::<String>(ProgramArgs::InputMode.name())
+                .unwrap()
+                .to_string(),
+        );
+
+        // convert from range 1..[cols]*[rows] to 0..[cols]*[rows]-1
+        self.active_lights.iter_mut().for_each(|val| *val -= 1);
+        self.simulation_steps.iter_mut().for_each(|val| *val -= 1);
 
         debug!("Active indices: {:?}", self.active_lights);
         debug!("Rows: {:?}", self.rows);
@@ -68,6 +102,7 @@ impl Program {
         nodes.dedup();
         let rows: usize = *matches.get_one(ProgramArgs::Rows.name()).unwrap();
         let cols: usize = *matches.get_one(ProgramArgs::Cols.name()).unwrap();
+
         (nodes, rows, cols)
     }
 
@@ -171,11 +206,29 @@ impl Program {
         }
     }
 
-    fn print_solution(&self, board: &Vec<bool>, solution: Option<Vec<usize>>, draw_mode: &String) {
+    fn print_solution(
+        &self,
+        board: &Vec<bool>,
+        solution: Option<Vec<usize>>,
+        draw_mode: &String,
+    ) {
         debug!("Draw mode: {}", draw_mode);
 
         if draw_mode == "simple" || draw_mode == "all" {
-            if let Some(result) = &solution {
+            // need to clone solution bc in display mode 'all' this is going to change the board
+            if let Some(result) = &mut solution.clone() {
+                result.iter_mut().for_each(|val| *val += 1);
+
+                Self::rotate_light_indices(
+                    result,
+                    self.cols,
+                    self.rows,
+                    self.matches
+                        .get_one::<String>(ProgramArgs::InputMode.name())
+                        .unwrap()
+                        .to_string(),
+                );
+
                 println!("{:?}", result);
             } else {
                 println!("{:?}", &solution);
@@ -223,5 +276,45 @@ impl Program {
         debug!("Board after simulation: {}", self.prettify_board(&board));
 
         print!("{}", self.prettify_board(&board));
+    }
+
+    /**
+     * Transformation are symectric so calling this twice with the same state is going to undo the changes
+     */
+    fn rotate_light_indices(indices: &mut Vec<usize>, cols: usize, rows: usize, state: String) {
+        match state.as_str() {
+            "tr" => Self::reorder_cols(indices, cols),
+            "bl" => Self::reorder_rows(indices, rows),
+            "br" => {
+                Self::reorder_cols(indices, cols);
+                Self::reorder_rows(indices, rows);
+            }
+            "tl" => { /*Do nothing 👀*/ }
+            _ => unreachable!(),
+        };
+    }
+
+    fn reorder_rows(indices: &mut Vec<usize>, rows: usize) {
+        let rows = rows as isize;
+
+        indices.iter_mut().for_each(|undex| {
+            let index = *undex as isize;
+
+            let row = (index - 1) / rows;
+            let offset = rows * (rows - 1 - 2 * row);
+            *undex = (index + offset) as usize;
+        });
+    }
+
+    fn reorder_cols(indices: &mut Vec<usize>, cols: usize) {
+        let cols = cols as isize;
+
+        indices.iter_mut().for_each(|undex| {
+            let index = *undex as isize;
+
+            let col = (index - 1) % cols;
+            let offset = cols - 1 - 2 * col;
+            *undex = (index + offset) as usize;
+        });
     }
 }
