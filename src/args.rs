@@ -1,4 +1,5 @@
 extern crate clap;
+
 use clap::{Arg, builder::PossibleValuesParser, value_parser, command, Command};
 
 macro_rules! new_basic_arg {
@@ -16,6 +17,7 @@ macro_rules! new_arg {
         .value_name($program_arg.value_name())
     };
 }
+
 pub enum ProgramArgs {
     Lights,
     Rows,

@@ -1,5 +1,6 @@
 pub mod solver;
 pub mod args;
+pub mod program;
 
 #[cfg(test)]
 mod solver_tests {
