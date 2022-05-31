@@ -224,4 +224,46 @@ impl Program {
 
         print!("{}", self.prettify_board(&board));
     }
+
+    fn rotate_light_indices(&self, indices:&mut Vec<usize>, current_state:&str, from_top_left: bool){
+        match current_state {
+            "tr" => Self::reorder_cols(indices, self.cols, from_top_left),
+            "bl" => Self::reorder_rows(indices, self.rows, from_top_left),
+            "br" => {
+                Self::reorder_cols(indices, self.cols, from_top_left);
+                Self::reorder_rows(indices, self.rows, from_top_left)
+            },
+            _ | "tl" => unreachable!()
+        };
+    }
+
+    fn reorder_rows(indices:&mut Vec<usize>, rows: usize, top_to_bottom: bool) {
+        let direction = if top_to_bottom { 1 } else { -1 };
+        let rows = rows as isize;
+
+        indices
+            .iter_mut()
+            .for_each(|undex| {
+                let index = *undex as isize;
+
+                let row = (index - 1) / rows;
+                let offset = rows * (rows - 1 - 2 * row);
+                *undex = (index + offset * direction) as usize;
+            });
+    }
+
+    fn reorder_cols(indices:&mut Vec<usize>, cols: usize, left_to_right: bool) {
+        let direction = if left_to_right { 1 } else { -1 };
+        let cols = cols as isize;
+
+        indices
+            .iter_mut()
+            .for_each(|undex| {
+                let index = *undex as isize;
+
+                let col = (index - 1) / cols;
+                let offset = cols - 1 - 2*col;
+                *undex = (index + offset * direction) as usize                
+            });
+    }
 }
