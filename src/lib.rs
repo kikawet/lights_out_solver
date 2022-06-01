@@ -1,10 +1,10 @@
-pub mod solver;
 pub mod args;
 pub mod program;
+pub mod solvers;
 
 #[cfg(test)]
 mod solver_tests {
-    use crate::solver::*;
+    use crate::solvers::recursive::*;
 
     #[test]
     fn test_simulate_tl() {

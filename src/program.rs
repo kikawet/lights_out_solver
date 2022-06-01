@@ -1,5 +1,7 @@
 use crate::args::ProgramArgs;
-use crate::solver::{simulate, solve};
+use crate::solvers::board::{BaseBoard, Board};
+use crate::solvers::gf2;
+use crate::solvers::recursive::{simulate, solve};
 use clap::{ArgMatches, Command, ErrorKind};
 use log::debug;
 pub struct Program {
@@ -253,7 +255,20 @@ impl Program {
 
     fn run_solver(&self, board: &Vec<bool>) -> Option<Vec<usize>> {
         debug!("Searching for solution ...");
-        let solution = solve(board);
+
+        let mut bb = BaseBoard::new(self.cols, self.rows);
+
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                let index = row*self.cols + col;
+
+                if board[index] {
+                    bb.set(col, row, 1);
+                }
+            }
+        }
+
+        let solution = gf2::solve(&bb);
         debug!("Final solution: {:?}", &solution);
 
         solution
