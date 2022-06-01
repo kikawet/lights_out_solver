@@ -29,11 +29,11 @@ pub fn simulate(board: &mut Vec<bool>, position: usize) {
     }
 }
 
-fn is_solved(board: &Vec<bool>) -> bool {
+fn is_solved(board: &[bool]) -> bool {
     board.iter().all(|&x| x)
 }
 
-fn is_solution_better(new_solution: &Vec<usize>, old_solution: &Vec<usize>) -> bool {
+fn is_solution_better(new_solution: &[usize], old_solution: &[usize]) -> bool {
     new_solution.len() < old_solution.len()
 }
 

@@ -121,7 +121,7 @@ impl Program {
     }
 
     fn validate_range_indices(
-        active_nodes: &Vec<usize>,
+        active_nodes: &[usize],
         cmd: &mut Command,
         rows: usize,
         cols: usize,
@@ -157,13 +157,13 @@ impl Program {
         Self::validate_range_indices(active_nodes, cmd, rows, cols);
     }
 
-    fn prettify_board(&self, board: &Vec<bool>) -> String {
+    fn prettify_board(&self, board: &[bool]) -> String {
         let mapped_board = self.map_board(board);
 
         self.board_to_str(&mapped_board)
     }
 
-    fn board_to_str(&self, board_as_char: &Vec<String>) -> String {
+    fn board_to_str(&self, board_as_char: &[String]) -> String {
         let mut board_string = String::new();
         for (index, node) in board_as_char.iter().enumerate() {
             if index % self.cols == 0 {
@@ -176,7 +176,7 @@ impl Program {
         board_string
     }
 
-    fn map_board(&self, board: &Vec<bool>) -> Vec<String> {
+    fn map_board(&self, board: &[bool]) -> Vec<String> {
         board
             .iter()
             .map(|node| {
@@ -208,7 +208,7 @@ impl Program {
 
     fn print_solution(
         &self,
-        board: &Vec<bool>,
+        board: &[bool],
         solution: Option<Vec<usize>>,
         draw_mode: &String,
     ) {
@@ -259,8 +259,8 @@ impl Program {
         solution
     }
 
-    fn run_simulation(&self, board: &Vec<bool>, simulation_steps: &Vec<usize>) {
-        let mut board = board.clone();
+    fn run_simulation(&self, board: &[bool], simulation_steps: &[usize]) {
+        let mut board = board.to_owned();
 
         debug!(
             "Board before the simulation:\n {}",
@@ -281,7 +281,7 @@ impl Program {
     /**
      * Transformation are symectric so calling this twice with the same state is going to undo the changes
      */
-    fn rotate_light_indices(indices: &mut Vec<usize>, cols: usize, rows: usize, state: String) {
+    fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, state: String) {
         match state.as_str() {
             "tr" => Self::reorder_cols(indices, cols),
             "bl" => Self::reorder_rows(indices, rows),
@@ -294,7 +294,7 @@ impl Program {
         };
     }
 
-    fn reorder_rows(indices: &mut Vec<usize>, rows: usize) {
+    fn reorder_rows(indices: &mut [usize], rows: usize) {
         let rows = rows as isize;
 
         indices.iter_mut().for_each(|undex| {
@@ -306,7 +306,7 @@ impl Program {
         });
     }
 
-    fn reorder_cols(indices: &mut Vec<usize>, cols: usize) {
+    fn reorder_cols(indices: &mut [usize], cols: usize) {
         let cols = cols as isize;
 
         indices.iter_mut().for_each(|undex| {
