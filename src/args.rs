@@ -93,7 +93,7 @@ impl ProgramArgs {
 pub fn init_app() -> Command<'static> {
     command!()
     .name("Lights Out Puzzle Solver")
-    .version("0.1.0")
+    .version("1.0.0")
     .about("With the given input of on node it will output the order to toggle the lights to solve the puzzle") 
     .arg(
         new_basic_arg!(ProgramArgs::Lights)
