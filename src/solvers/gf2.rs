@@ -4,20 +4,20 @@ pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
     let (cols, rows) = board.size();
 
     let mut matrix = vec![vec![0usize; rows * cols]; rows * cols];
-    let mut blank = BaseBoard::new(cols, rows);
+    let mut blank = BaseBoard::new_blank(cols, rows);
     let mut expected = vec![0usize; cols * rows];
 
     for row in 0..rows {
         for col in 0..cols {
             let index = row * cols + col;
-            blank.make_move(col, row);
+            blank.trigger_coord(col, row);
             for sub_row in 0..rows {
                 for sub_col in 0..cols {
                     let sub_index = sub_row * cols + sub_col;
                     matrix[index][sub_index] = blank.get(sub_col, sub_row).unwrap();
                 }
             }
-            blank.make_move(col, row);
+            blank.trigger_coord(col, row);
             expected[index] = board.get(col, row).unwrap() + 1 % 2;
         }
     }
@@ -64,7 +64,7 @@ fn gauss_jordan_zf2(mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<us
         let tmp = *bs.get(i).unwrap();
         *bs.get_mut(i).unwrap() = *bs.get(j).unwrap();
         *bs.get_mut(j).unwrap() = tmp;
-    };
+    }
 
     fn add(m: &mut Vec<Vec<usize>>, bs: &mut Vec<usize>, i: usize, j: usize) {
         if i == j {
@@ -76,7 +76,7 @@ fn gauss_jordan_zf2(mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<us
         }
         *bs.get_mut(i).unwrap() += *bs.get(j).unwrap();
         *bs.get_mut(i).unwrap() %= 2;
-    };
+    }
 
     for pivot in 0..rows {
         // 1. find pivot row
