@@ -114,7 +114,7 @@ impl Program {
     }
 
     fn validate_range_indices(active_nodes: &[usize], cmd: &mut Command, rows: usize, cols: usize) {
-        let max_value = rows * cols - 1;
+        let max_value = rows * cols;
 
         if let Some(out_of_range) = active_nodes.iter().find(|&&it| it > max_value) {
             cmd.error(
@@ -167,9 +167,8 @@ impl Program {
     fn map_board(&self, board: &Box<dyn Board>) -> Vec<String> {
         board
             .iter()
-            .enumerate()
-            .map(|(pos, val)| {
-                if pos == *val {
+            .map(|val| {
+                if *val == 1 {
                     "#".to_string()
                 } else {
                     "·".to_string()
