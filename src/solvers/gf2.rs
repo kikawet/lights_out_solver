@@ -24,69 +24,68 @@ pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
 
     let sol = gauss_jordan_zf2(matrix, expected);
     match sol {
-        Some(s) => {
-            let mut ret = Vec::with_capacity(s.len());
-            for i in 0..s.len() {
-                if s[i] != 0 {
-                    let col = i % cols;
-                    let row = i / cols;
-                    let index = row * cols + col;
-                    ret.push(index);
-                }
-            }
-            Some(ret)
+        Some(solution) => {
+            Some(
+                solution
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, val)| **val != 0)
+                    .map(|(index, _)| index)
+                    .collect::<Vec<usize>>(),
+            )
         }
         None => None,
     }
 }
-fn gauss_jordan_zf2(mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<usize>> {
-    let mut m = mat.clone();
-    let mut bs = expected.clone();
-    let rows = m.len();
+fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<usize>> {
+    let mut solution = expected;
+    let rows = mat.len();
     if rows == 0 {
         return None;
     }
-    let cols = m[0].len();
+    let cols = mat[0].len();
     if cols == 0 {
         return None;
     }
 
-    fn swap(m: &mut Vec<Vec<usize>>, bs: &mut Vec<usize>, i: usize, j: usize) {
+    fn swap(m: &mut Vec<Vec<usize>>, sol: &mut Vec<usize>, i: usize, j: usize) {
         if i == j {
             return;
         }
-        // XXX is cloning optimal here?
-        let tmpi = m.get(i).unwrap().clone();
-        let tmpj = m.get(j).unwrap().clone();
-        *m.get_mut(i).unwrap() = tmpj;
-        *m.get_mut(j).unwrap() = tmpi;
+        
+        let tmpi = m[i].to_vec();
+        let tmpj = m[j].to_vec();
+        m[i] = tmpj;
+        m[j] = tmpi;
 
-        let tmp = *bs.get(i).unwrap();
-        *bs.get_mut(i).unwrap() = *bs.get(j).unwrap();
-        *bs.get_mut(j).unwrap() = tmp;
+        let tmp = sol[i];
+        sol[i] = sol[j];
+        sol[j] = tmp;
     }
 
     fn add(m: &mut Vec<Vec<usize>>, bs: &mut Vec<usize>, i: usize, j: usize) {
         if i == j {
             panic!("trying to add row to itself");
         }
-        for x in 0..m.get(i).unwrap().len() {
-            *m.get_mut(i).unwrap().get_mut(x).unwrap() += *m.get(j).unwrap().get(x).unwrap();
-            *m.get_mut(i).unwrap().get_mut(x).unwrap() %= 2;
+
+        for x in 0..m[i].len() {
+            m[i][x] += m[j][x];
+            m[i][x] %= 2;
         }
-        *bs.get_mut(i).unwrap() += *bs.get(j).unwrap();
-        *bs.get_mut(i).unwrap() %= 2;
+
+        bs[i] += bs[j];
+        bs[i] %= 2;
     }
 
     for pivot in 0..rows {
         // 1. find pivot row
         for i in pivot..rows {
-            if m[i][pivot] != 0 {
-                swap(&mut m, &mut bs, i, pivot);
+            if mat[i][pivot] != 0 {
+                swap(&mut mat, &mut solution, i, pivot);
                 break;
             }
         }
-        if m[pivot][pivot] == 0 && bs[pivot] != 0 {
+        if mat[pivot][pivot] == 0 && solution[pivot] != 0 {
             return None;
         }
 
@@ -95,10 +94,10 @@ fn gauss_jordan_zf2(mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<us
             if i == pivot {
                 continue;
             }
-            if m[i][pivot] != 0 {
-                add(&mut m, &mut bs, i, pivot);
+            if mat[i][pivot] != 0 {
+                add(&mut mat, &mut solution, i, pivot);
             }
         }
     }
-    Some(bs)
+    Some(solution)
 }
