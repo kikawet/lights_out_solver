@@ -1,17 +1,13 @@
 use crate::args::ProgramArgs;
 use crate::solvers::board::{BaseBoard, Board};
 use crate::solvers::gf2;
-use crate::solvers::recursive::{simulate, solve};
 use clap::{ArgMatches, Command, ErrorKind};
 use log::debug;
 pub struct Program {
     cmd: Command<'static>,
     matches: ArgMatches,
-    active_lights: Vec<usize>,
+    board: Box<dyn Board>,
     simulation_steps: Vec<usize>,
-    board: Vec<bool>,
-    cols: usize,
-    rows: usize,
 }
 
 impl Program {
@@ -24,24 +20,14 @@ impl Program {
         Self {
             cmd,
             matches,
-            active_lights: vec![],
+            board: Box::new(BaseBoard::new_blank(0, 0)),
             simulation_steps: vec![],
-            board: vec![],
-            cols: 0,
-            rows: 0,
         }
     }
 
     pub fn load_data(&mut self) {
-        let (active_nodes, rows, cols) = self.load_board_data(&self.matches);
-        let simulation_steps = self.load_simulation_data(&self.matches);
-
-        let total_nodes = rows * cols;
-
-        self.active_lights = active_nodes;
-        self.simulation_steps = simulation_steps;
-        self.cols = cols;
-        self.rows = rows;
+        let (mut active_nodes, rows, cols) = self.load_board_data();
+        let mut simulation_steps = self.load_simulation_data();
 
         debug!(
             "Input mode: {:?}",
@@ -51,9 +37,9 @@ impl Program {
         );
 
         Self::rotate_light_indices(
-            &mut self.active_lights,
-            self.cols,
-            self.rows,
+            &mut active_nodes,
+            cols,
+            rows,
             self.matches
                 .get_one::<String>(ProgramArgs::InputMode.name())
                 .unwrap()
@@ -61,9 +47,9 @@ impl Program {
         );
 
         Self::rotate_light_indices(
-            &mut self.simulation_steps,
-            self.cols,
-            self.rows,
+            &mut simulation_steps,
+            cols,
+            rows,
             self.matches
                 .get_one::<String>(ProgramArgs::InputMode.name())
                 .unwrap()
@@ -71,63 +57,63 @@ impl Program {
         );
 
         // convert from range 1..[cols]*[rows] to 0..[cols]*[rows]-1
-        self.active_lights.iter_mut().for_each(|val| *val -= 1);
-        self.simulation_steps.iter_mut().for_each(|val| *val -= 1);
+        active_nodes.iter_mut().for_each(|val| *val -= 1);
+        simulation_steps.iter_mut().for_each(|val| *val -= 1);
 
-        debug!("Active indices: {:?}", self.active_lights);
-        debug!("Rows: {:?}", self.rows);
-        debug!("Cols: {:?}", self.cols);
+        self.board = Box::new(BaseBoard::new_from(&active_nodes, cols, rows));
+        self.simulation_steps = simulation_steps;
 
-        self.validate_data();
+        debug!("Active indices: {:?}", active_nodes);
+        debug!("Rows: {:?}", rows);
+        debug!("Cols: {:?}", cols);
 
-        let mut board: Vec<bool> = vec![false; total_nodes];
-        for position in &self.active_lights {
-            board[*position] = true;
-        }
+        // let mut board: Vec<bool> = vec![false; total_nodes];
+        // for position in &self.active_lights {
+        //     board[*position] = true;
+        // }
 
-        self.board = board;
+        // self.board = board;
 
-        debug!("Board: {}", self.prettify_board(&self.board));
+        // debug!("Board: {}", self.prettify_board(&self.board));
     }
 
     pub fn is_enabled(&self, id: &str) -> bool {
         self.matches.is_present(id)
     }
 
-    fn load_board_data(&self, matches: &ArgMatches) -> (Vec<usize>, usize, usize) {
-        let mut nodes: Vec<usize> = matches
+    fn load_board_data(&mut self) -> (Vec<usize>, usize, usize) {
+        let mut nodes: Vec<usize> = self.matches
             .get_many::<usize>(ProgramArgs::Lights.name())
             .unwrap_or_default()
             .copied()
             .collect();
         nodes.sort_unstable();
         nodes.dedup();
-        let rows: usize = *matches.get_one(ProgramArgs::Rows.name()).unwrap();
-        let cols: usize = *matches.get_one(ProgramArgs::Cols.name()).unwrap();
+        let rows: usize = *self.matches.get_one(ProgramArgs::Rows.name()).unwrap();
+        let cols: usize = *self.matches.get_one(ProgramArgs::Cols.name()).unwrap();
+
+        Self::validate_indices(&nodes, &mut self.cmd, rows, cols);
 
         (nodes, rows, cols)
     }
 
-    fn load_simulation_data(&self, matches: &ArgMatches) -> Vec<usize> {
-        matches
+    fn load_simulation_data(&mut self) -> Vec<usize> {
+        let simulation_steps = self.matches
             .get_many(ProgramArgs::RunSimulation.name())
             .unwrap_or_default()
             .copied()
-            .collect()
+            .collect::<Vec<usize>>();
+
+        let rows: usize = *self.matches.get_one(ProgramArgs::Rows.name()).unwrap();
+        let cols: usize = *self.matches.get_one(ProgramArgs::Cols.name()).unwrap();
+
+            
+        Self::validate_range_indices(&simulation_steps, &mut self.cmd, rows, cols);
+
+        simulation_steps
     }
 
-    fn validate_data(&mut self) {
-        // @TODO: make validations non-static
-        Self::validate_indices(&self.active_lights, &mut self.cmd, self.rows, self.cols);
-        Self::validate_range_indices(&self.simulation_steps, &mut self.cmd, self.rows, self.cols);
-    }
-
-    fn validate_range_indices(
-        active_nodes: &[usize],
-        cmd: &mut Command,
-        rows: usize,
-        cols: usize,
-    ) {
+    fn validate_range_indices(active_nodes: &[usize], cmd: &mut Command, rows: usize, cols: usize) {
         let max_value = rows * cols - 1;
 
         if let Some(out_of_range) = active_nodes.iter().find(|&&it| it > max_value) {
@@ -159,8 +145,8 @@ impl Program {
         Self::validate_range_indices(active_nodes, cmd, rows, cols);
     }
 
-    fn prettify_board(&self, board: &[bool]) -> String {
-        let mapped_board = self.map_board(board);
+    fn prettify_board(&self, board: &Box<dyn Board>) -> String {
+        let mapped_board = self.map_board(&board);
 
         self.board_to_str(&mapped_board)
     }
@@ -168,7 +154,7 @@ impl Program {
     fn board_to_str(&self, board_as_char: &[String]) -> String {
         let mut board_string = String::new();
         for (index, node) in board_as_char.iter().enumerate() {
-            if index % self.cols == 0 {
+            if index % self.board.cols() == 0 {
                 board_string.push('\n');
             }
 
@@ -178,11 +164,12 @@ impl Program {
         board_string
     }
 
-    fn map_board(&self, board: &[bool]) -> Vec<String> {
+    fn map_board(&self, board: &Box<dyn Board>) -> Vec<String> {
         board
             .iter()
-            .map(|node| {
-                if *node {
+            .enumerate()
+            .map(|(pos, val)| {
+                if pos == *val {
                     "#".to_string()
                 } else {
                     "·".to_string()
@@ -195,7 +182,7 @@ impl Program {
         self.load_data();
 
         if !self.is_enabled(ProgramArgs::RunSimulation.id()) {
-            let solution = self.run_solver(&self.board);
+            let solution = self.run_solver();
             self.print_solution(
                 &self.board,
                 solution,
@@ -204,16 +191,11 @@ impl Program {
                     .unwrap(),
             );
         } else {
-            self.run_simulation(&self.board, &self.simulation_steps);
+            self.run_simulation();
         }
     }
 
-    fn print_solution(
-        &self,
-        board: &[bool],
-        solution: Option<Vec<usize>>,
-        draw_mode: &String,
-    ) {
+    fn print_solution(&self, board: &Box<dyn Board>, solution: Option<Vec<usize>>, draw_mode: &String) {
         debug!("Draw mode: {}", draw_mode);
 
         if draw_mode == "simple" || draw_mode == "all" {
@@ -221,10 +203,12 @@ impl Program {
             if let Some(result) = &mut solution.clone() {
                 result.iter_mut().for_each(|val| *val += 1);
 
+                let (cols, rows) = board.size();
+
                 Self::rotate_light_indices(
                     result,
-                    self.cols,
-                    self.rows,
+                    cols,
+                    rows,
                     self.matches
                         .get_one::<String>(ProgramArgs::InputMode.name())
                         .unwrap()
@@ -253,44 +237,30 @@ impl Program {
         }
     }
 
-    fn run_solver(&self, board: &Vec<bool>) -> Option<Vec<usize>> {
+    fn run_solver(&self) -> Option<Vec<usize>> {
         debug!("Searching for solution ...");
 
-        let mut bb = BaseBoard::new(self.cols, self.rows);
-
-        for row in 0..self.rows {
-            for col in 0..self.cols {
-                let index = row*self.cols + col;
-
-                if board[index] {
-                    bb.set(col, row, 1);
-                }
-            }
-        }
-
-        let solution = gf2::solve(&bb);
+        let solution = gf2::solve(self.board.as_ref());
         debug!("Final solution: {:?}", &solution);
 
         solution
     }
 
-    fn run_simulation(&self, board: &[bool], simulation_steps: &[usize]) {
-        let mut board = board.to_owned();
-
+    fn run_simulation(&mut self) {
         debug!(
             "Board before the simulation:\n {}",
-            self.prettify_board(&board)
+            self.prettify_board(&self.board)
         );
-        debug!("Steps to simulate: {:?}", simulation_steps);
+        debug!("Steps to simulate: {:?}", self.simulation_steps);
 
-        for (step, node_to_trigger) in simulation_steps.iter().enumerate() {
-            simulate(&mut board, *node_to_trigger);
-            debug!("Step {}:\n {}", step, self.prettify_board(&board));
+        for (step, node_to_trigger) in self.simulation_steps.iter().enumerate() {
+            self.board.trigger_index(*node_to_trigger);
+            debug!("Step {}:\n {}", step, self.prettify_board(&self.board));
         }
 
-        debug!("Board after simulation: {}", self.prettify_board(&board));
+        debug!("Board after simulation: {}", self.prettify_board(&self.board));
 
-        print!("{}", self.prettify_board(&board));
+        print!("{}", self.prettify_board(&self.board));
     }
 
     /**
