@@ -13,9 +13,6 @@ pub struct Program {
 impl Program {
     pub fn new(mut cmd: Command<'static>) -> Self {
         let matches = cmd.get_matches_mut();
-        // let arg_vec = vec!["lights_out_solver", "-v", "7","9", "1","3"];
-        // let matches = cmd.try_get_matches_from_mut(arg_vec)
-        // .unwrap_or_else(|e| e.exit());
 
         Self {
             cmd,
@@ -145,8 +142,8 @@ impl Program {
         Self::validate_range_indices(active_nodes, cmd, rows, cols);
     }
 
-    fn prettify_board(&self, board: &Box<dyn Board>) -> String {
-        let mapped_board = self.map_board(&board);
+    fn prettify_board(&self, board: &dyn Board) -> String {
+        let mapped_board = self.map_board(board);
 
         self.board_to_str(&mapped_board)
     }
@@ -164,7 +161,7 @@ impl Program {
         board_string
     }
 
-    fn map_board(&self, board: &Box<dyn Board>) -> Vec<String> {
+    fn map_board(&self, board: &dyn Board) -> Vec<String> {
         board
             .iter()
             .map(|val| {
@@ -183,7 +180,7 @@ impl Program {
         if !self.is_enabled(ProgramArgs::RunSimulation.id()) {
             let solution = self.run_solver();
             self.print_solution(
-                &self.board,
+                self.board.as_ref(),
                 solution,
                 self.matches
                     .get_one::<String>(ProgramArgs::DisplayMode.name())
@@ -194,7 +191,7 @@ impl Program {
         }
     }
 
-    fn print_solution(&self, board: &Box<dyn Board>, solution: Option<Vec<usize>>, draw_mode: &String) {
+    fn print_solution(&self, board: &dyn Board, solution: Option<Vec<usize>>, draw_mode: &String) {
         debug!("Draw mode: {}", draw_mode);
 
         if draw_mode == "simple" || draw_mode == "all" {
@@ -248,18 +245,18 @@ impl Program {
     fn run_simulation(&mut self) {
         debug!(
             "Board before the simulation:\n {}",
-            self.prettify_board(&self.board)
+            self.prettify_board(self.board.as_ref())
         );
         debug!("Steps to simulate: {:?}", self.simulation_steps);
 
         for (step, node_to_trigger) in self.simulation_steps.iter().enumerate() {
             self.board.trigger_index(*node_to_trigger);
-            debug!("Step {}:\n {}", step, self.prettify_board(&self.board));
+            debug!("Step {}:\n {}", step, self.prettify_board(self.board.as_ref()));
         }
 
-        debug!("Board after simulation: {}", self.prettify_board(&self.board));
+        debug!("Board after simulation: {}", self.prettify_board(self.board.as_ref()));
 
-        print!("{}", self.prettify_board(&self.board));
+        print!("{}", self.prettify_board(self.board.as_ref()));
     }
 
     /**

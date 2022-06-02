@@ -18,24 +18,20 @@ pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
                 }
             }
             blank.trigger_coord(col, row);
-            expected[index] = board.get(col, row).unwrap() + 1 % 2;
+            expected[index] = (board.get(col, row).unwrap() + 1) % 2;
         }
     }
 
     let sol = gauss_jordan_zf2(matrix, expected);
-    match sol {
-        Some(solution) => {
-            Some(
-                solution
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, val)| **val != 0)
-                    .map(|(index, _)| index)
-                    .collect::<Vec<usize>>(),
-            )
-        }
-        None => None,
-    }
+
+    sol.map(|solution| {
+        solution
+            .iter()
+            .enumerate()
+            .filter(|(_, val)| **val != 0)
+            .map(|(index, _)| index)
+            .collect::<Vec<usize>>()
+    })
 }
 fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<usize>> {
     let mut solution = expected;
@@ -48,22 +44,20 @@ fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Ve
         return None;
     }
 
-    fn swap(m: &mut Vec<Vec<usize>>, sol: &mut Vec<usize>, i: usize, j: usize) {
+    fn swap(m: &mut [Vec<usize>], sol: &mut [usize], i: usize, j: usize) {
         if i == j {
             return;
         }
-        
+
         let tmpi = m[i].to_vec();
         let tmpj = m[j].to_vec();
         m[i] = tmpj;
         m[j] = tmpi;
 
-        let tmp = sol[i];
-        sol[i] = sol[j];
-        sol[j] = tmp;
+        sol.swap(i, j);
     }
 
-    fn add(m: &mut Vec<Vec<usize>>, bs: &mut Vec<usize>, i: usize, j: usize) {
+    fn add(m: &mut [Vec<usize>], bs: &mut [usize], i: usize, j: usize) {
         if i == j {
             panic!("trying to add row to itself");
         }
