@@ -8,9 +8,7 @@ mod solver_tests {
 
     #[test]
     fn test_simulate_tl() {
-        let mut test = vec![
-            false;9
-        ];
+        let mut test = vec![false; 9];
 
         simulate(&mut test, 0);
         
@@ -25,9 +23,7 @@ mod solver_tests {
 
     #[test]
     fn test_simulate_mm() {
-        let mut test = vec![
-            false;9
-        ];
+        let mut test = vec![false; 9];
         simulate(&mut test, 4);
         
         const RESULT: [bool; 9] = [
@@ -41,7 +37,7 @@ mod solver_tests {
 
     #[test]
     fn test_simulate_br_mm() {
-        let mut test = vec![false;9        ];
+        let mut test = vec![false; 9];
         simulate(&mut test, 4);
         simulate(&mut test, 8);
         
@@ -56,7 +52,7 @@ mod solver_tests {
 
     #[test]
     fn test_simulate_ml_mr() {
-        let mut test = vec![false;9        ];
+        let mut test = vec![false; 9];
         simulate(&mut test, 3);
         simulate(&mut test, 5);
         
@@ -77,7 +73,7 @@ mod solver_tests {
             false,  false,   false
         ];
 
-        let solution = solve(& board).unwrap();
+        let solution = solve(&board).unwrap();
 
         for step in solution.iter() {
             simulate(&mut board, *step);
@@ -116,7 +112,6 @@ mod solver_tests {
 
         assert_eq!(solution, [4]);
     }
-
 }
 
 #[cfg(test)]
@@ -129,12 +124,10 @@ mod args_tests {
     struct Setup {
         cmd: Command<'static>,
     }
-    
+
     impl Setup {
         fn new() -> Self {
-            Self {
-                cmd: init_app(),
-            }
+            Self { cmd: init_app() }
         }
     }
 
@@ -143,7 +136,5 @@ mod args_tests {
         let cmd = Setup::new().cmd;
 
         assert_eq!(cmd.get_name(), "Lights Out Puzzle Solver");
-        
     }
-
 }
