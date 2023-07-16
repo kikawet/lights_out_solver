@@ -1,6 +1,6 @@
 extern crate clap;
 
-use clap::{Arg, builder::PossibleValuesParser, value_parser, command, Command};
+use clap::{Arg, builder::PossibleValuesParser, value_parser, command, Command, ArgAction};
 
 macro_rules! new_basic_arg {
     ($program_arg:path) => {
@@ -90,51 +90,48 @@ impl ProgramArgs {
     }
 }
 
-pub fn init_app() -> Command<'static> {
+pub fn init_app() -> Command {
     command!()
     .name("Lights Out Puzzle Solver")
     .version("1.0.0")
-    .about("With the given input of on node it will output the order to toggle the lights to solve the puzzle") 
+    .about("It finds the minimal solution and you aswell run in simulation mode to check that the board is going to look after a number of steps") 
     .arg(
         new_basic_arg!(ProgramArgs::Lights)
-            .multiple_values(true)
+            .num_args(1..)
             .index(1)
             .value_parser(value_parser!(usize)),
     )
     .arg(
         new_arg!(ProgramArgs::Rows)            
-            .takes_value(true)
+            .action(ArgAction::Set)
             .default_value("3")
             .value_parser(value_parser!(usize)),
     )
     .arg(
         new_arg!(ProgramArgs::Cols)
-            .takes_value(true)
+            .action(ArgAction::Set)
             .default_value("3")
             .value_parser(value_parser!(usize)),
     )
     .arg(
         new_arg!(ProgramArgs::Verbose)
-            .takes_value(false)
+            .action(ArgAction::SetTrue)
     )
     .arg(
         new_arg!(ProgramArgs::RunSimulation)
-            .multiple_values(true)
-            .takes_value(true)
+            .num_args(1..)
             .value_parser(value_parser!(usize)),
     )
     .arg(
         new_arg!(ProgramArgs::DisplayMode)
-            .takes_value(true)
+            .action(ArgAction::Set)
             .value_parser(PossibleValuesParser::new(["simple", "draw", "all"]))
             .default_value("draw"),
     )
     .arg(
         new_arg!(ProgramArgs::InputMode)
-            .takes_value(true)
+            .action(ArgAction::Set)
             .value_parser(PossibleValuesParser::new(["tl", "tr", "bl", "br"]))
-            .multiple_values(false)
-            .multiple_occurrences(false)
             .default_value("bl"),
     )
 }

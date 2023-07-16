@@ -1,17 +1,18 @@
 use crate::args::ProgramArgs;
 use crate::solvers::board::{BaseBoard, Board};
 use crate::solvers::gf2;
-use clap::{ArgMatches, Command, ErrorKind};
+use clap::{ArgMatches, Command};
+use clap::error::ErrorKind;
 use log::debug;
 pub struct Program {
-    cmd: Command<'static>,
+    cmd: Command,
     matches: ArgMatches,
     board: Box<dyn Board>,
     simulation_steps: Vec<usize>,
 }
 
 impl Program {
-    pub fn new(mut cmd: Command<'static>) -> Self {
+    pub fn new(mut cmd: Command) -> Self {
         let matches = cmd.get_matches_mut();
 
         Self {
@@ -75,7 +76,7 @@ impl Program {
     }
 
     pub fn is_enabled(&self, id: &str) -> bool {
-        self.matches.is_present(id)
+        self.matches.contains_id(id)
     }
 
     fn load_board_data(&mut self) -> (Vec<usize>, usize, usize) {
