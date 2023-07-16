@@ -122,7 +122,7 @@ mod args_tests {
     use crate::args::*;
 
     struct Setup {
-        cmd: Command<'static>,
+        cmd: Command,
     }
 
     impl Setup {
