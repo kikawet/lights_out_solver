@@ -121,20 +121,32 @@ mod args_tests {
 
     use crate::args::*;
 
-    struct Setup {
-        cmd: Command,
+    fn get_test_cmd() -> Command {
+        init_app()
     }
 
-    impl Setup {
-        fn new() -> Self {
-            Self { cmd: init_app() }
-        }
+    macro_rules! test_args {
+        ($($arg:expr),*) => {
+            {
+                let mut arg_vec = vec!["<PROGRAM>"];
+                $(arg_vec.push($arg);)*
+                arg_vec
+            }
+        };
     }
 
     #[test]
     fn test_name() {
-        let cmd = Setup::new().cmd;
+        let cmd = get_test_cmd();
 
         assert_eq!(cmd.get_name(), "Lights Out Puzzle Solver");
+        assert!(cmd.try_get_matches_from(test_args!["--version"]).is_err()); // Is error because does not match any arg
+    }
+
+    #[test]
+    fn test_input_lights() {
+        let matches = get_test_cmd().try_get_matches_from(test_args!["7", "9", "1", "3"]).unwrap();
+
+        assert_eq!(matches.get_many::<usize>(ProgramArgs::Lights.id()).unwrap().copied().collect::<Vec<_>>(), [7,9,1,3]);
     }
 }
