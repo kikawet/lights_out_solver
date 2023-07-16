@@ -93,7 +93,6 @@ impl ProgramArgs {
 pub fn init_app() -> Command {
     command!()
     .name("Lights Out Puzzle Solver")
-    .version("1.0.0")
     .about("It finds the minimal solution and you aswell run in simulation mode to check that the board is going to look after a number of steps") 
     .arg(
         new_basic_arg!(ProgramArgs::Lights)
