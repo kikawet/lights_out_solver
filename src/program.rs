@@ -1,8 +1,8 @@
-use crate::args::ProgramArgs;
+use crate::args::{Matcheable, ProgramArgs, CommandArgs};
 use crate::solvers::board::{BaseBoard, Board};
 use crate::solvers::gf2;
-use clap::{ArgMatches, Command};
 use clap::error::ErrorKind;
+use clap::{ArgMatches, Command};
 use log::debug;
 pub struct Program {
     cmd: Command,
@@ -27,32 +27,13 @@ impl Program {
         let (mut active_nodes, rows, cols) = self.load_board_data();
         let mut simulation_steps = self.load_simulation_data();
 
-        debug!(
-            "Input mode: {:?}",
-            self.matches
-                .get_one::<String>(ProgramArgs::InputMode.name())
-                .unwrap()
-        );
+        let input_mode = ProgramArgs::InputMode.get_match_from(&self.matches);
 
-        Self::rotate_light_indices(
-            &mut active_nodes,
-            cols,
-            rows,
-            self.matches
-                .get_one::<String>(ProgramArgs::InputMode.name())
-                .unwrap()
-                .to_string(),
-        );
+        debug!("Input mode: {:?}", input_mode);
 
-        Self::rotate_light_indices(
-            &mut simulation_steps,
-            cols,
-            rows,
-            self.matches
-                .get_one::<String>(ProgramArgs::InputMode.name())
-                .unwrap()
-                .to_string(),
-        );
+        Self::rotate_light_indices(&mut active_nodes, cols, rows, input_mode);
+
+        Self::rotate_light_indices(&mut simulation_steps, cols, rows, input_mode);
 
         // convert from range 1..[cols]*[rows] to 0..[cols]*[rows]-1
         active_nodes.iter_mut().for_each(|val| *val -= 1);
@@ -80,15 +61,11 @@ impl Program {
     }
 
     fn load_board_data(&mut self) -> (Vec<usize>, usize, usize) {
-        let mut nodes: Vec<usize> = self.matches
-            .get_many::<usize>(ProgramArgs::Lights.name())
-            .unwrap_or_default()
-            .copied()
-            .collect();
+        let mut nodes: Vec<usize> = ProgramArgs::Lights.get_match_from(&self.matches);
         nodes.sort_unstable();
         nodes.dedup();
-        let rows: usize = *self.matches.get_one(ProgramArgs::Rows.name()).unwrap();
-        let cols: usize = *self.matches.get_one(ProgramArgs::Cols.name()).unwrap();
+        let rows: usize = ProgramArgs::Rows.get_match_from(&self.matches);
+        let cols: usize = ProgramArgs::Cols.get_match_from(&self.matches);
 
         Self::validate_indices(&nodes, &mut self.cmd, rows, cols);
 
@@ -96,16 +73,11 @@ impl Program {
     }
 
     fn load_simulation_data(&mut self) -> Vec<usize> {
-        let simulation_steps = self.matches
-            .get_many(ProgramArgs::RunSimulation.name())
-            .unwrap_or_default()
-            .copied()
-            .collect::<Vec<usize>>();
+        let simulation_steps: Vec<usize> = ProgramArgs::RunSimulation.get_match_from(&self.matches);
 
-        let rows: usize = *self.matches.get_one(ProgramArgs::Rows.name()).unwrap();
-        let cols: usize = *self.matches.get_one(ProgramArgs::Cols.name()).unwrap();
+        let rows: usize = ProgramArgs::Rows.get_match_from(&self.matches);
+        let cols: usize = ProgramArgs::Cols.get_match_from(&self.matches);
 
-            
         Self::validate_range_indices(&simulation_steps, &mut self.cmd, rows, cols);
 
         simulation_steps
@@ -183,9 +155,7 @@ impl Program {
             self.print_solution(
                 self.board.as_ref(),
                 solution,
-                self.matches
-                    .get_one::<String>(ProgramArgs::DisplayMode.name())
-                    .unwrap(),
+                ProgramArgs::DisplayMode.get_match_from(&self.matches),
             );
         } else {
             self.run_simulation();
@@ -206,10 +176,7 @@ impl Program {
                     result,
                     cols,
                     rows,
-                    self.matches
-                        .get_one::<String>(ProgramArgs::InputMode.name())
-                        .unwrap()
-                        .to_string(),
+                    ProgramArgs::InputMode.get_match_from(&self.matches),
                 );
 
                 println!("{:?}", result);
@@ -252,10 +219,17 @@ impl Program {
 
         for (step, node_to_trigger) in self.simulation_steps.iter().enumerate() {
             self.board.trigger_index(*node_to_trigger);
-            debug!("Step {}:\n {}", step, self.prettify_board(self.board.as_ref()));
+            debug!(
+                "Step {}:\n {}",
+                step,
+                self.prettify_board(self.board.as_ref())
+            );
         }
 
-        debug!("Board after simulation: {}", self.prettify_board(self.board.as_ref()));
+        debug!(
+            "Board after simulation: {}",
+            self.prettify_board(self.board.as_ref())
+        );
 
         print!("{}", self.prettify_board(self.board.as_ref()));
     }
@@ -263,8 +237,8 @@ impl Program {
     /**
      * Transformation are symectric so calling this twice with the same state is going to undo the changes
      */
-    fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, state: String) {
-        match state.as_str() {
+    fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, state: &str) {
+        match state {
             "tr" => Self::reorder_cols(indices, cols),
             "bl" => Self::reorder_rows(indices, rows),
             "br" => {
