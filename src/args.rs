@@ -1,22 +1,45 @@
 extern crate clap;
 
-use clap::{Arg, builder::PossibleValuesParser, value_parser, command, Command, ArgAction};
+use clap::{Arg, builder::PossibleValuesParser, value_parser, command, Command, ArgAction, ArgMatches};
 
-macro_rules! new_basic_arg {
+macro_rules! new_argument {
     ($program_arg:path) => {
         Arg::new($program_arg.name())
             .help($program_arg.help())
     };
 }
 
-macro_rules! new_arg {
+macro_rules! new_option {
     ($program_arg:path) => {
-        new_basic_arg!($program_arg)
+        new_argument!($program_arg)
         .short($program_arg.short())
         .long($program_arg.long())
         .value_name($program_arg.value_name())
     };
 }
+
+fn get_one_match<T>(matches: &ArgMatches, arg: &impl CommandArgs) -> T
+where
+    T: Sized + Clone + Send + Sync + 'static,
+{
+    matches
+        .get_one::<T>(arg.id())
+        .unwrap_or_else(|| panic!("Failed to get required command argument {}", arg.id()))
+        .to_owned()
+}
+
+
+pub trait Matcheable<T>
+where
+    T: Sized + Clone + Send + Sync + 'static,
+    Self: CommandArgs + Sized,
+{
+    fn get_match_from(&self, matches: &ArgMatches) -> T {
+        get_one_match(matches, self)
+    }
+}
+
+impl<T> Matcheable<T> for ProgramArgs where T: Sized + Clone + Send + Sync + 'static {}
 
 pub enum ProgramArgs {
     Lights,
@@ -27,13 +50,25 @@ pub enum ProgramArgs {
     DisplayMode,
     InputMode,
 }
-
-impl ProgramArgs {
-    pub fn id(self) -> &'static str{
+pub trait CommandArgs {
+    fn id(&self) -> &'static str {
         self.name()
     }
 
-    pub fn name(self) -> &'static str{
+    fn name(&self) -> &'static str;
+    fn help(self) -> &'static str;
+    fn short(self) -> char;
+    fn long(self) -> &'static str;
+    fn value_name(self) -> &'static str
+    where
+        Self: Sized,
+    {
+        self.name()
+    }
+}
+
+impl CommandArgs for ProgramArgs {
+    fn name(&self) -> &'static str{
         match self {
             ProgramArgs::Lights => "lights",
             ProgramArgs::Rows => "rows",
@@ -95,40 +130,40 @@ pub fn init_app() -> Command {
     .name("Lights Out Puzzle Solver")
     .about("It finds the minimal solution and you aswell run in simulation mode to check that the board is going to look after a number of steps") 
     .arg(
-        new_basic_arg!(ProgramArgs::Lights)
+        new_argument!(ProgramArgs::Lights)
             .num_args(1..)
             .index(1)
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::Rows)            
+        new_option!(ProgramArgs::Rows)            
             .action(ArgAction::Set)
             .default_value("3")
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::Cols)
+        new_option!(ProgramArgs::Cols)
             .action(ArgAction::Set)
             .default_value("3")
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::Verbose)
+        new_option!(ProgramArgs::Verbose)
             .action(ArgAction::SetTrue)
     )
     .arg(
-        new_arg!(ProgramArgs::RunSimulation)
+        new_option!(ProgramArgs::RunSimulation)
             .num_args(1..)
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::DisplayMode)
+        new_option!(ProgramArgs::DisplayMode)
             .action(ArgAction::Set)
             .value_parser(PossibleValuesParser::new(["simple", "draw", "all"]))
             .default_value("draw"),
     )
     .arg(
-        new_arg!(ProgramArgs::InputMode)
+        new_option!(ProgramArgs::InputMode)
             .action(ArgAction::Set)
             .value_parser(PossibleValuesParser::new(["tl", "tr", "bl", "br"]))
             .default_value("bl"),

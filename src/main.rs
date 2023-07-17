@@ -1,4 +1,4 @@
-use lights_out_solver::args::{init_app, ProgramArgs};
+use lights_out_solver::args::{init_app, ProgramArgs, CommandArgs};
 use lights_out_solver::program::Program;
 use log::info;
 
