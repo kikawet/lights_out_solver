@@ -1,22 +1,45 @@
 extern crate clap;
 
-use clap::{Arg, builder::PossibleValuesParser, value_parser, command, Command};
+use clap::{
+    builder::PossibleValuesParser, command, value_parser, Arg, ArgAction, ArgMatches, Command,
+};
 
-macro_rules! new_basic_arg {
+macro_rules! new_argument {
     ($program_arg:path) => {
-        Arg::new($program_arg.name())
-            .help($program_arg.help())
+        Arg::new($program_arg.name()).help($program_arg.help())
     };
 }
 
-macro_rules! new_arg {
+macro_rules! new_option {
     ($program_arg:path) => {
-        new_basic_arg!($program_arg)
-        .short($program_arg.short())
-        .long($program_arg.long())
-        .value_name($program_arg.value_name())
+        new_argument!($program_arg)
+            .short($program_arg.short())
+            .long($program_arg.long())
+            .value_name($program_arg.value_name())
     };
 }
+
+fn get_one_match<T>(matches: &ArgMatches, arg: &impl CommandArgs) -> T
+where
+    T: Sized + Clone + Send + Sync + 'static,
+{
+    matches
+        .get_one::<T>(arg.id())
+        .unwrap_or_else(|| panic!("Failed to get required command argument {}", arg.id()))
+        .to_owned()
+}
+
+pub trait Matcheable<T>
+where
+    T: Sized + Clone + Send + Sync + 'static,
+    Self: CommandArgs + Sized,
+{
+    fn get_match_from(&self, matches: &ArgMatches) -> T {
+        get_one_match(matches, self)
+    }
+}
+
+impl<T> Matcheable<T> for ProgramArgs where T: Sized + Clone + Send + Sync + 'static {}
 
 pub enum ProgramArgs {
     Lights,
@@ -27,13 +50,25 @@ pub enum ProgramArgs {
     DisplayMode,
     InputMode,
 }
-
-impl ProgramArgs {
-    pub fn id(self) -> &'static str{
+pub trait CommandArgs {
+    fn id(&self) -> &'static str {
         self.name()
     }
 
-    pub fn name(self) -> &'static str{
+    fn name(&self) -> &'static str;
+    fn help(self) -> &'static str;
+    fn short(self) -> char;
+    fn long(self) -> &'static str;
+    fn value_name(self) -> &'static str
+    where
+        Self: Sized,
+    {
+        self.name()
+    }
+}
+
+impl CommandArgs for ProgramArgs {
+    fn name(&self) -> &'static str {
         match self {
             ProgramArgs::Lights => "lights",
             ProgramArgs::Rows => "rows",
@@ -45,7 +80,7 @@ impl ProgramArgs {
         }
     }
 
-    fn help(self) -> &'static str{
+    fn help(self) -> &'static str {
         match self {
             ProgramArgs::Lights => "Indexes of the active lights (range from 1 to [cols]*[rows])",
             ProgramArgs::Rows => "The number of rows",
@@ -53,11 +88,13 @@ impl ProgramArgs {
             ProgramArgs::Verbose => "Enable the debug logs",
             ProgramArgs::RunSimulation => "Run a simulation with the given input",
             ProgramArgs::DisplayMode => "Sets the way you display the results",
-            ProgramArgs::InputMode => "Changes where the first index is located in the matrix (eg: bl = bottom left)",
+            ProgramArgs::InputMode => {
+                "Changes where the first index is located in the matrix (eg: bl = bottom left)"
+            }
         }
     }
 
-    fn short(self) -> char{
+    fn short(self) -> char {
         match self {
             ProgramArgs::Rows => 'r',
             ProgramArgs::Cols => 'c',
@@ -65,11 +102,11 @@ impl ProgramArgs {
             ProgramArgs::RunSimulation => 's',
             ProgramArgs::DisplayMode => 'd',
             ProgramArgs::InputMode => 'i',
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
-    fn long(self) -> &'static str{
+    fn long(self) -> &'static str {
         match self {
             ProgramArgs::Rows => "rows",
             ProgramArgs::Cols => "cols",
@@ -77,64 +114,60 @@ impl ProgramArgs {
             ProgramArgs::RunSimulation => "simulate",
             ProgramArgs::DisplayMode => "display",
             ProgramArgs::InputMode => "input",
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
-    fn value_name(self) -> &'static str{
+    fn value_name(self) -> &'static str {
         match self {
             ProgramArgs::DisplayMode | ProgramArgs::InputMode => "mode",
             ProgramArgs::RunSimulation => "steps",
-            _ => self.name()
-        }        
+            _ => self.name(),
+        }
     }
 }
 
-pub fn init_app() -> Command<'static> {
+pub fn init_app() -> Command {
     command!()
     .name("Lights Out Puzzle Solver")
-    .version("1.0.0")
-    .about("With the given input of on node it will output the order to toggle the lights to solve the puzzle") 
+    .about("It finds the minimal solution and you aswell run in simulation mode to check that the board is going to look after a number of steps") 
     .arg(
-        new_basic_arg!(ProgramArgs::Lights)
-            .multiple_values(true)
+        new_argument!(ProgramArgs::Lights)
+            .num_args(1..)
             .index(1)
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::Rows)            
-            .takes_value(true)
+        new_option!(ProgramArgs::Rows)            
+            .action(ArgAction::Set)
             .default_value("3")
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::Cols)
-            .takes_value(true)
+        new_option!(ProgramArgs::Cols)
+            .action(ArgAction::Set)
             .default_value("3")
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::Verbose)
-            .takes_value(false)
+        new_option!(ProgramArgs::Verbose)
+            .action(ArgAction::SetTrue)
     )
     .arg(
-        new_arg!(ProgramArgs::RunSimulation)
-            .multiple_values(true)
-            .takes_value(true)
+        new_option!(ProgramArgs::RunSimulation)
+            .num_args(1..)
             .value_parser(value_parser!(usize)),
     )
     .arg(
-        new_arg!(ProgramArgs::DisplayMode)
-            .takes_value(true)
+        new_option!(ProgramArgs::DisplayMode)
+            .action(ArgAction::Set)
             .value_parser(PossibleValuesParser::new(["simple", "draw", "all"]))
             .default_value("draw"),
     )
     .arg(
-        new_arg!(ProgramArgs::InputMode)
-            .takes_value(true)
+        new_option!(ProgramArgs::InputMode)
+            .action(ArgAction::Set)
             .value_parser(PossibleValuesParser::new(["tl", "tr", "bl", "br"]))
-            .multiple_values(false)
-            .multiple_occurrences(false)
             .default_value("bl"),
     )
 }

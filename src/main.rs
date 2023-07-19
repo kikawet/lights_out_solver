@@ -1,11 +1,11 @@
-use lights_out_solver::args::{init_app, ProgramArgs};
+use lights_out_solver::args::{init_app, CommandArgs, ProgramArgs};
 use lights_out_solver::program::Program;
 use log::info;
 
 use simple_logger::SimpleLogger;
 
 fn main() {
-    let mut program = Program::new(init_app()) ;
+    let mut program = Program::new(init_app());
     set_up_logger(&program);
 
     program.run();
