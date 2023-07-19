@@ -1,20 +1,21 @@
 extern crate clap;
 
-use clap::{Arg, builder::PossibleValuesParser, value_parser, command, Command, ArgAction, ArgMatches};
+use clap::{
+    builder::PossibleValuesParser, command, value_parser, Arg, ArgAction, ArgMatches, Command,
+};
 
 macro_rules! new_argument {
     ($program_arg:path) => {
-        Arg::new($program_arg.name())
-            .help($program_arg.help())
+        Arg::new($program_arg.name()).help($program_arg.help())
     };
 }
 
 macro_rules! new_option {
     ($program_arg:path) => {
         new_argument!($program_arg)
-        .short($program_arg.short())
-        .long($program_arg.long())
-        .value_name($program_arg.value_name())
+            .short($program_arg.short())
+            .long($program_arg.long())
+            .value_name($program_arg.value_name())
     };
 }
 
@@ -27,7 +28,6 @@ where
         .unwrap_or_else(|| panic!("Failed to get required command argument {}", arg.id()))
         .to_owned()
 }
-
 
 pub trait Matcheable<T>
 where
@@ -68,7 +68,7 @@ pub trait CommandArgs {
 }
 
 impl CommandArgs for ProgramArgs {
-    fn name(&self) -> &'static str{
+    fn name(&self) -> &'static str {
         match self {
             ProgramArgs::Lights => "lights",
             ProgramArgs::Rows => "rows",
@@ -80,7 +80,7 @@ impl CommandArgs for ProgramArgs {
         }
     }
 
-    fn help(self) -> &'static str{
+    fn help(self) -> &'static str {
         match self {
             ProgramArgs::Lights => "Indexes of the active lights (range from 1 to [cols]*[rows])",
             ProgramArgs::Rows => "The number of rows",
@@ -88,11 +88,13 @@ impl CommandArgs for ProgramArgs {
             ProgramArgs::Verbose => "Enable the debug logs",
             ProgramArgs::RunSimulation => "Run a simulation with the given input",
             ProgramArgs::DisplayMode => "Sets the way you display the results",
-            ProgramArgs::InputMode => "Changes where the first index is located in the matrix (eg: bl = bottom left)",
+            ProgramArgs::InputMode => {
+                "Changes where the first index is located in the matrix (eg: bl = bottom left)"
+            }
         }
     }
 
-    fn short(self) -> char{
+    fn short(self) -> char {
         match self {
             ProgramArgs::Rows => 'r',
             ProgramArgs::Cols => 'c',
@@ -100,11 +102,11 @@ impl CommandArgs for ProgramArgs {
             ProgramArgs::RunSimulation => 's',
             ProgramArgs::DisplayMode => 'd',
             ProgramArgs::InputMode => 'i',
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
-    fn long(self) -> &'static str{
+    fn long(self) -> &'static str {
         match self {
             ProgramArgs::Rows => "rows",
             ProgramArgs::Cols => "cols",
@@ -112,16 +114,16 @@ impl CommandArgs for ProgramArgs {
             ProgramArgs::RunSimulation => "simulate",
             ProgramArgs::DisplayMode => "display",
             ProgramArgs::InputMode => "input",
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
-    fn value_name(self) -> &'static str{
+    fn value_name(self) -> &'static str {
         match self {
             ProgramArgs::DisplayMode | ProgramArgs::InputMode => "mode",
             ProgramArgs::RunSimulation => "steps",
-            _ => self.name()
-        }        
+            _ => self.name(),
+        }
     }
 }
 
