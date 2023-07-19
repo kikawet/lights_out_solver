@@ -22,4 +22,5 @@ Cargo.lock
 
 # Package Build
 *.zst
+*.gz
 pkg/

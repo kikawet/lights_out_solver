@@ -29,15 +29,11 @@ impl BaseBoard {
     }
 
     pub fn new_from(active: &[usize], cols: usize, rows: usize) -> BaseBoard {
-        let mut board = vec![0usize; cols*rows];
+        let mut board = vec![0usize; cols * rows];
 
         active.iter().for_each(|position| board[*position] = 1);
 
-        BaseBoard {
-            cols,
-            rows,
-            board,
-        }
+        BaseBoard { cols, rows, board }
     }
 
     fn get_index(&self, col: usize, row: usize) -> usize {
@@ -46,7 +42,6 @@ impl BaseBoard {
 }
 
 impl Board for BaseBoard {
-
     fn size(&self) -> (usize, usize) {
         (self.cols, self.rows)
     }
@@ -58,8 +53,8 @@ impl Board for BaseBoard {
     fn rows(&self) -> usize {
         self.rows
     }
-    
-    fn iter(&self) -> std::slice::Iter<'_, usize>{
+
+    fn iter(&self) -> std::slice::Iter<'_, usize> {
         self.board.iter()
     }
 

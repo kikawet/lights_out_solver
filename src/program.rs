@@ -1,4 +1,4 @@
-use crate::args::{Matcheable, ProgramArgs, CommandArgs};
+use crate::args::{CommandArgs, Matcheable, ProgramArgs};
 use crate::solvers::board::{BaseBoard, Board};
 use crate::solvers::gf2;
 use clap::error::ErrorKind;
