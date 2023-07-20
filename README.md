@@ -10,7 +10,7 @@ It finds the minimal solution and you aswell run in simulation mode to check tha
 In order to read the documentation use `--help`
 ```sh
 $ los --help
-Lights Out Puzzle Solver 1.0.1
+Lights Out Puzzle Solver 1.1.1
 With the given input of on node it will output the order to toggle the lights to solve the puzzle
 
 USAGE:
