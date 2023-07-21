@@ -45,15 +45,6 @@ impl Program {
         debug!("Active indices: {:?}", active_nodes);
         debug!("Rows: {:?}", rows);
         debug!("Cols: {:?}", cols);
-
-        // let mut board: Vec<bool> = vec![false; total_nodes];
-        // for position in &self.active_lights {
-        //     board[*position] = true;
-        // }
-
-        // self.board = board;
-
-        // debug!("Board: {}", self.prettify_board(&self.board));
     }
 
     pub fn is_enabled(&self, id: &str) -> bool {
