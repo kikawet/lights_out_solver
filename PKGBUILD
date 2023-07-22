@@ -1,20 +1,29 @@
-pkgname=los
+pkgname=los-git
+binname=los
 pkgnamelong=lights_out_solver
-pkgver=1.1.1
+pkgver=1.1.2
 pkgrel=1
 pkgdesc="CLI program created in Rust to solve Lights Out Puzzle"
 arch=('x86_64')
 url='https://github.com/kikawet/lights_out_solver'
 license=('MIT')
 makedepends=('cargo')
-source=(
-"$pkgnamelong-$pkgver.tar.gz::https://github.com/kikawet/$pkgnamelong/archive/v$pkgver.tar.gz"
-"https://github.com/kikawet/$pkgnamelong/releases/download/v$pkgver/$pkgnamelong-$pkgver.tar.gz.sig"
-)
-sha256sums=('SKIP' 'SKIP')
+source=("git+$url.git")
+b2sums=('SKIP')
+
+pkgver() {
+    cd "$pkgnamelong"
+
+    initial_branch=$(git rev-parse --abbrev-ref HEAD)
+
+    git checkout origin/main
+    git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+
+    git checkout "$initial_branch"
+}
 
 prepare() {
-    cd "$pkgnamelong-$pkgver"
+    cd "$pkgnamelong"
 
     export RUSTUP_TOOLCHAIN=stable
     cargo update
@@ -22,7 +31,7 @@ prepare() {
 }
 
 build() {
-    cd "$pkgnamelong-$pkgver"
+    cd "$pkgnamelong"
 
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_TARGET_DIR=target
@@ -30,17 +39,17 @@ build() {
 }
 
 check() {
-    cd "$pkgnamelong-$pkgver"
+    cd "$pkgnamelong"
 
     export RUSTUP_TOOLCHAIN=stable
     cargo test --frozen --all-features
 }
 
 package() {
-    cd "$pkgnamelong-$pkgver"
+    cd "$pkgnamelong"
 
-    install -Dm0755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
-    install -Dm644 "$pkgname.1" "$pkgdir/usr/share/man/man1/$pkgname.1"
-    install -Dm644 "README.md" "$pkgdir/usr/share/doc/$pkgname/README"
-    install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm0755 "target/release/$binname" "$pkgdir/usr/bin/$binname"
+    install -Dm644 "$binname.1" "$pkgdir/usr/share/man/man1/$binname.1"
+    install -Dm644 "README.md" "$pkgdir/usr/share/doc/$binname/README"
+    install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$binname/LICENSE"
 }
