@@ -5,10 +5,6 @@ on:
     types:
       - created
   workflow_dispatch:  # Add a manual trigger
-    inputs:
-      release_version:
-        description: 'Release version to sign and upload'
-        required: true
 
 jobs:
   release:
@@ -43,7 +39,7 @@ jobs:
   sign:
     name: Sign Release
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    #if: github.event_name == 'release'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
