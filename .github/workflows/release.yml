@@ -4,7 +4,6 @@ on:
   release:
     types:
       - created
-  workflow_dispatch:  # Add a manual trigger
 
 jobs:
   release:
@@ -35,36 +34,3 @@ jobs:
           SRC_DIR: "src"
           ARCHIVE_TYPES: ${{ matrix.archive }}
           MINIFY: "yes"
-
-  sign:
-    name: Sign Release
-    runs-on: ubuntu-latest
-    #if: github.event_name == 'release'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Install GnuPG
-        run: sudo apt-get update && sudo apt-get install -y gnupg
-
-      - name: Get latest release
-        run: |
-          RELEASE_URL=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tarball_url')
-          curl -O -L "$RELEASE_URL"
-          TAR_GZ_FILENAME=$(basename "$RELEASE_URL")
-          echo "::set-output name=tar_gz_filename::$TAR_GZ_FILENAME"
-
-      - name: Import GPG private key
-        uses: crazy-max/ghaction-import-gpg@v5
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-
-      - name: Sign release file
-        run: gpg --detach-sign --armor "${{ steps.get_release.outputs.tar_gz_filename }}"
-
-      - name: Upload *.tar.gz.sig file to the release
-        uses: actions/upload-artifact@v2
-        with:
-          name: signed_release
-          path: "${{ steps.get_release.outputs.tar_gz_filename }}.sig"
