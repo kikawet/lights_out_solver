@@ -1,5 +1,5 @@
 pub mod args;
-pub mod program;
+// pub mod program;
 pub mod solvers;
 
 #[cfg(test)]
@@ -86,46 +86,46 @@ mod solver_tests {
 
 #[cfg(test)]
 mod args_tests {
-
-    use clap::*;
-
-    use crate::args::*;
-
-    fn get_test_cmd() -> Command {
-        init_app()
-    }
+    use crate::args::Display;
+    use crate::args::Input;
+    use crate::args::Origin;
+    use clap::CommandFactory;
+    use clap::Parser;
 
     macro_rules! test_args {
         ($($arg:expr),*) => {
-            {
-                let mut arg_vec = vec!["<PROGRAM>"];
-                $(arg_vec.push($arg);)*
-                arg_vec
-            }
+            vec!["<PROGRAM>", $($arg),*]
         };
     }
 
     #[test]
-    fn test_name() {
-        let cmd = get_test_cmd();
+    fn verify_clap() {
+        Input::command().debug_assert();
+    }
 
-        assert_eq!(cmd.get_name(), "Lights Out Puzzle Solver");
-        assert!(cmd.try_get_matches_from(test_args!["--version"]).is_err()); // Is error because does not match any arg
+    #[test]
+    fn test_name() {
+        assert_eq!(Input::command().get_name(), "Lights Out Puzzle Solver");
     }
 
     #[test]
     fn test_input_lights() {
-        let matches = get_test_cmd()
-            .try_get_matches_from(test_args!["7", "9", "1", "3"])
-            .unwrap();
+        let input = Input::try_parse_from(test_args!("7", "9", "1", "3"))
+            .expect("ligths are not parsed properly");
 
-        assert_eq!(
-            matches
-                .get_many::<usize>(ProgramArgs::Lights.id())
-                .unwrap()
-                .copied()
-                .collect::<Vec<_>>(),
-            [7, 9, 1, 3]
-        );
+        assert_eq!(input.lights, vec![7, 9, 1, 3]);
+    }
+
+    #[test]
+    fn test_defaults() {
+        let input = Input::try_parse_from(test_args!()).expect("ligths are not parsed properly");
+
+        assert_eq!(input.lights.len(), 0);
+        assert_eq!(input.cols, 3);
+        assert_eq!(input.rows, 3);
+        assert_eq!(input.verbose, false);
+        assert_eq!(input.simulation_steps.len(), 0);
+        assert_eq!(input.display_mode, Display::Draw);
+        assert_eq!(input.origin_location, Origin::BottomLeft);
     }
 }
