@@ -2,7 +2,8 @@ name: release
 
 on:
   release:
-    types: [created]
+    types:
+      - created
 
 jobs:
   release:
@@ -33,26 +34,3 @@ jobs:
           SRC_DIR: "src"
           ARCHIVE_TYPES: ${{ matrix.archive }}
           MINIFY: "yes"
-      - name: Download releaseartifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: release-artifacts
-          path: release
-      - name: Generate Checksum
-        # You may pin to the exact commit or the version.
-        # uses: jmgilman/actions-generate-checksum@24a35957fba81c6cbaefeb1e3d59ee56e3db5077
-        uses: jmgilman/actions-generate-checksum@v1.0.0
-        with:
-          # Hashing algorithm to use [md5, sha1, sha256, sha512]
-          method: sha512
-          # Output file path
-          output: checkshum.txt
-          # List of glob patterns to use for matching files
-          patterns: release/*.tar.gz
-      - name: Release checksum
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            checksum.txt
-            release/*.zip
-            release/*.tar.gz
