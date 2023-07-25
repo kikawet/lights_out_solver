@@ -2,7 +2,7 @@
 pkgname=los-git
 binname=los
 pkgnamelong=lights_out_solver
-pkgver=1.2.0
+pkgver=1.2.0.r0.gdb1d7f7
 pkgrel=1
 pkgdesc="CLI program created in Rust to solve Lights Out Puzzle"
 arch=('x86_64')
