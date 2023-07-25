@@ -1,36 +1,24 @@
-pub fn simulate(board: &mut Vec<bool>, position: usize) {
-    let side_size: usize = f32::sqrt(board.len() as f32) as usize;
-    let mod_position: usize = position % side_size;
+use super::board::{BaseBoard, Board};
 
-    board[position] = !board[position];
+pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
+    let mut solution: Vec<usize> = vec![];
+    let mut best_solution: Option<Vec<usize>> = None;
+    let mut available_moves: Vec<bool> = vec![true; board.cols() * board.rows()];
 
-    let bottom = position + side_size;
-    if bottom < board.len() {
-        board[bottom] = !board[bottom]
-    }
+    let mut board = BaseBoard::new_from_values(
+        &board.iter().map(|&b| b != 0).collect::<Vec<_>>(),
+        board.cols(),
+        board.rows(),
+    );
 
-    if position >= side_size {
-        let top = position - side_size;
-        board[top] = !board[top];
-    }
+    solve_recursive(
+        &mut board,
+        &mut available_moves,
+        &mut solution,
+        &mut best_solution,
+    );
 
-    let right = position + 1;
-    if right % side_size > mod_position {
-        board[right] = !board[right];
-    }
-
-    if position == 0 {
-        return;
-    }
-
-    let left = position - 1;
-    if left % side_size < mod_position {
-        board[left] = !board[left];
-    }
-}
-
-fn is_solved(board: &[bool]) -> bool {
-    board.iter().all(|&x| x)
+    best_solution
 }
 
 fn is_solution_better(new_solution: &[usize], old_solution: &[usize]) -> bool {
@@ -38,7 +26,7 @@ fn is_solution_better(new_solution: &[usize], old_solution: &[usize]) -> bool {
 }
 
 pub fn solve_recursive(
-    board: &mut Vec<bool>,
+    board: &mut dyn Board,
     available_moves: &mut Vec<bool>,
     solution: &mut Vec<usize>,
     best_solution: &mut Option<Vec<usize>>,
@@ -48,22 +36,22 @@ pub fn solve_recursive(
         None => false,
     };
 
-    if is_solved(board) || solution.len() > board.len() || is_better_solution {
+    if board.is_solved() || solution.len() > board.iter().len() || is_better_solution {
         return;
     }
 
-    for i in 0..board.len() {
+    for i in 0..(board.cols() * board.rows()) {
         if !available_moves[i] {
-            continue;
+            return;
         }
 
         available_moves[i] = false;
-        simulate(board, i);
+        board.trigger_index(i);
         solution.push(i);
 
         solve_recursive(board, available_moves, solution, best_solution);
 
-        if is_solved(board) {
+        if board.is_solved() {
             match best_solution {
                 None => {
                     *best_solution = Some(solution.clone());
@@ -78,21 +66,6 @@ pub fn solve_recursive(
 
         available_moves[i] = true;
         solution.pop();
-        simulate(board, i);
+        board.trigger_index(i);
     }
-}
-
-pub fn solve(board: &Vec<bool>) -> Option<Vec<usize>> {
-    let mut solution: Vec<usize> = vec![];
-    let mut best_solution: Option<Vec<usize>> = None;
-    let mut available_moves: Vec<bool> = vec![true; board.len()];
-
-    solve_recursive(
-        &mut board.clone(),
-        &mut available_moves,
-        &mut solution,
-        &mut best_solution,
-    );
-
-    best_solution
 }
