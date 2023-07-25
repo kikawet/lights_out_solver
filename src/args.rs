@@ -17,13 +17,13 @@ pub struct Input {
     /// The number of rows
     ///
     /// Minimun allowed value: 1
-    #[arg(short, long, default_value_t = 3, value_parser = clap::value_parser!(u64).range(1..))]
-    pub rows: u64,
+    #[arg(short, long, default_value_t = 3)]
+    pub rows: usize,
     /// The number of columns
     ///  
     /// Minimun allowed value: 1
-    #[arg(short, long, default_value_t = 3, value_parser = clap::value_parser!(u64).range(1..))]
-    pub cols: u64,
+    #[arg(short, long, default_value_t = 3)]
+    pub cols: usize,
     /// Enable the debug logs
     ///
     /// Default: false

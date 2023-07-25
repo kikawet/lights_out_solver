@@ -1,5 +1,5 @@
 use clap::Parser;
-use lights_out_solver::args::Input;
+use lights_out_solver::{args::Input, program::Program};
 use log::info;
 
 use simple_logger::SimpleLogger;
@@ -7,6 +7,10 @@ use simple_logger::SimpleLogger;
 fn main() {
     let input = Input::parse();
     set_up_logger(&input);
+
+    let mut program = Program::new(input);
+
+    program.run();
 }
 
 fn set_up_logger(input: &Input) {

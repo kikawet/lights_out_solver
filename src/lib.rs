@@ -1,5 +1,5 @@
 pub mod args;
-// pub mod program;
+pub mod program;
 pub mod solvers;
 
 #[cfg(test)]
