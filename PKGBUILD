@@ -1,3 +1,4 @@
+# Maintainer: kikawet h5xf5j645@mozmail.com
 pkgname=los-git
 binname=los
 pkgnamelong=lights_out_solver
