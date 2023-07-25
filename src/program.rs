@@ -39,7 +39,7 @@ impl Program {
         active_nodes.iter_mut().for_each(|val| *val -= 1);
         simulation_steps.iter_mut().for_each(|val| *val -= 1);
 
-        self.board = Box::new(BaseBoard::new_from(&active_nodes, cols, rows));
+        self.board = Box::new(BaseBoard::new_from_positions(&active_nodes, cols, rows));
         self.simulation_steps = simulation_steps;
 
         debug!("Active indices: {:?}", active_nodes);

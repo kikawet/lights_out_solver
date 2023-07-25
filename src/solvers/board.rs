@@ -28,10 +28,21 @@ impl BaseBoard {
         }
     }
 
-    pub fn new_from(active: &[usize], cols: usize, rows: usize) -> BaseBoard {
+    pub fn new_from_positions(active: &[usize], cols: usize, rows: usize) -> BaseBoard {
         let mut board = vec![0usize; cols * rows];
 
         active.iter().for_each(|position| board[*position] = 1);
+
+        BaseBoard { cols, rows, board }
+    }
+
+    pub fn new_from_values(active: &[bool], cols: usize, rows: usize) -> BaseBoard {
+        let mut board = vec![0usize; cols * rows];
+
+        board
+            .iter_mut()
+            .zip(active.iter())
+            .for_each(|(b, &a)| *b = a as usize);
 
         BaseBoard { cols, rows, board }
     }
@@ -83,7 +94,7 @@ impl Board for BaseBoard {
     }
 
     fn is_solved(&self) -> bool {
-        self.board.iter().all(|val| *val == 0)
+        self.board.iter().all(|val| *val == 1)
     }
 
     fn trigger_index(&mut self, index: usize) -> &mut dyn Board {
