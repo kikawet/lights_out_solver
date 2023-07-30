@@ -1,6 +1,7 @@
 pub mod args;
 pub mod program;
 pub mod solvers;
+pub mod workers;
 
 #[cfg(test)]
 mod args_tests {
@@ -41,7 +42,7 @@ mod args_tests {
         assert_eq!(input.lights.len(), 0);
         assert_eq!(input.cols, 3);
         assert_eq!(input.rows, 3);
-        assert_eq!(input.verbose, false);
+        assert!(!input.verbose);
         assert_eq!(input.simulation_steps.len(), 0);
         assert_eq!(input.display_mode, Display::Draw);
         assert_eq!(input.origin_location, Origin::BottomLeft);

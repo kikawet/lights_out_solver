@@ -1,5 +1,5 @@
 use crate::args::{Display, Input, Origin};
-use crate::solvers::board::{BaseBoard, Board};
+use crate::solvers::board::{Binary, Board};
 use crate::solvers::gf2;
 use clap::error::ErrorKind;
 use clap::CommandFactory;
@@ -10,10 +10,11 @@ pub struct Program {
 }
 
 impl Program {
+    #[must_use]
     pub fn new(input: Input) -> Self {
         Self {
             input,
-            board: Box::new(BaseBoard::new_blank(0, 0)),
+            board: Box::new(Binary::new_blank(0, 0)),
         }
     }
 
@@ -25,11 +26,7 @@ impl Program {
         let cols = self.input.cols;
         let rows = self.input.rows;
 
-        self.board = Box::new(BaseBoard::new_from_positions(
-            &self.input.lights,
-            cols,
-            rows,
-        ));
+        self.board = Box::new(Binary::new_from_positions(&self.input.lights, cols, rows));
 
         debug!("Active lights: {:?}", self.input.lights);
         debug!("Rows: {:?}", rows);
@@ -46,12 +43,12 @@ impl Program {
 
         Self::validate_indices(nodes, rows, cols);
 
-        Self::rotate_light_indices(nodes, cols, rows, &self.input.origin_location);
+        Self::rotate_light_indices(nodes, cols, rows, self.input.origin_location);
 
         // convert from range 1..[cols]*[rows] to 0..[cols]*[rows]-1
-        nodes.iter_mut().for_each(|val| {
+        for val in nodes {
             *val -= 1;
-        });
+        }
     }
 
     fn prepare_simulation_data(&mut self) {
@@ -61,7 +58,7 @@ impl Program {
 
         Self::validate_range_indices(simulation_steps, rows, cols);
 
-        Self::rotate_light_indices(simulation_steps, cols, rows, &self.input.origin_location);
+        Self::rotate_light_indices(simulation_steps, cols, rows, self.input.origin_location);
 
         simulation_steps.iter_mut().for_each(|val| *val -= 1);
     }
@@ -73,10 +70,7 @@ impl Program {
             Input::command()
                 .error(
                     ErrorKind::ArgumentConflict,
-                    format!(
-                        "Index {} out of range for a {}x{} size",
-                        out_of_range, rows, cols
-                    ),
+                    format!("Index {out_of_range} out of range for a {rows}x{cols} size"),
                 )
                 .exit();
         }
@@ -90,8 +84,7 @@ impl Program {
                 .error(
                     ErrorKind::ArgumentConflict,
                     format!(
-                        "Too many parameters given. The maximum number of nodes is {}",
-                        max_nodes
+                        "Too many parameters given. The maximum number of nodes is {max_nodes}"
                     ),
                 )
                 .exit();
@@ -101,7 +94,7 @@ impl Program {
     }
 
     fn prettify_board(&self, board: &dyn Board) -> String {
-        let mapped_board = self.map_board(board);
+        let mapped_board = Self::map_board(board);
 
         self.board_to_str(&mapped_board)
     }
@@ -119,7 +112,7 @@ impl Program {
         board_string
     }
 
-    fn map_board(&self, board: &dyn Board) -> Vec<String> {
+    fn map_board(board: &dyn Board) -> Vec<String> {
         board
             .iter()
             .map(|val| {
@@ -137,32 +130,32 @@ impl Program {
 
         if self.input.simulation_steps.is_empty() {
             let solution = self.run_solver();
-            self.print_solution(self.board.as_ref(), solution, &self.input.display_mode);
+            self.print_solution(self.board.as_ref(), solution, self.input.display_mode);
         } else {
             self.run_simulation();
         }
     }
 
-    fn print_solution(&self, board: &dyn Board, solution: Option<Vec<usize>>, draw_mode: &Display) {
+    fn print_solution(&self, board: &dyn Board, solution: Option<Vec<usize>>, draw_mode: Display) {
         debug!("Draw mode: {:?}", draw_mode);
 
-        if *draw_mode == Display::Simple || *draw_mode == Display::All {
+        if draw_mode == Display::Simple || draw_mode == Display::All {
             // need to clone solution bc in display mode 'all' this is going to change the board
             if let Some(result) = &mut solution.clone() {
                 result.iter_mut().for_each(|val| *val += 1);
 
                 let (cols, rows) = board.size();
 
-                Self::rotate_light_indices(result, cols, rows, &self.input.origin_location);
+                Self::rotate_light_indices(result, cols, rows, self.input.origin_location);
 
-                println!("{:?}", result);
+                println!("{result:?}");
             } else {
                 println!("{:?}", &solution);
             }
         }
 
-        if *draw_mode == Display::Draw || *draw_mode == Display::All {
-            let mut mapped_board = self.map_board(board);
+        if draw_mode == Display::Draw || draw_mode == Display::All {
+            let mut mapped_board = Self::map_board(board);
 
             for (order, position) in solution
                 .or(None)
@@ -213,7 +206,7 @@ impl Program {
     /**
      * Transformation are symectric so calling this twice with the same state is going to undo the changes
      */
-    fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, location: &Origin) {
+    fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, location: Origin) {
         match location {
             Origin::TopRight => Self::reorder_cols(indices, cols),
             Origin::BottomLeft => Self::reorder_rows(indices, rows),
@@ -228,24 +221,24 @@ impl Program {
     fn reorder_rows(indices: &mut [usize], rows: usize) {
         let rows = rows as isize;
 
-        indices.iter_mut().for_each(|undex| {
+        for undex in indices.iter_mut() {
             let index = *undex as isize;
 
             let row = (index - 1) / rows;
             let offset = rows * (rows - 1 - 2 * row);
             *undex = (index + offset) as usize;
-        });
+        }
     }
 
     fn reorder_cols(indices: &mut [usize], cols: usize) {
         let cols = cols as isize;
 
-        indices.iter_mut().for_each(|undex| {
+        for undex in indices.iter_mut() {
             let index = *undex as isize;
 
             let col = (index - 1) % cols;
             let offset = cols - 1 - 2 * col;
             *undex = (index + offset) as usize;
-        });
+        }
     }
 }

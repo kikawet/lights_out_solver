@@ -1,11 +1,11 @@
-use super::board::{BaseBoard, Board};
+use super::board::{Binary, Board};
 
 pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
     let mut solution: Vec<usize> = vec![];
     let mut best_solution: Option<Vec<usize>> = None;
     let mut available_moves: Vec<bool> = vec![true; board.cols() * board.rows()];
 
-    let mut board = BaseBoard::new_from_values(
+    let mut board = Binary::new_from_values(
         &board.iter().map(|&b| b != 0).collect::<Vec<_>>(),
         board.cols(),
         board.rows(),
@@ -25,7 +25,7 @@ fn is_solution_better(new_solution: &[usize], old_solution: &[usize]) -> bool {
     new_solution.len() < old_solution.len()
 }
 
-pub fn solve_recursive(
+fn solve_recursive(
     board: &mut dyn Board,
     available_moves: &mut Vec<bool>,
     solution: &mut Vec<usize>,
