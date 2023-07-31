@@ -1,5 +1,14 @@
-use clap::Parser;
-use lights_out_solver::{args::Input, program::Program};
+use clap::{CommandFactory, Parser};
+use lights_out_solver::{
+    args::Input,
+    workers::{
+        implementations::{
+            print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatiorWorker,
+            solver::SolverWorker, validate_range::ValidateRangeWorker,
+        },
+        worker::{State, Worker},
+    },
+};
 use log::info;
 
 use simple_logger::SimpleLogger;
@@ -8,9 +17,37 @@ fn main() {
     let input = Input::parse();
     set_up_logger(&input);
 
-    let mut program = Program::new(input);
+    let mut worker = get_worker_chain(&input);
+    let mut state = build_state(input);
 
-    program.run();
+    worker.execute(&mut state).expect("okey dokey");
+}
+
+fn get_worker_chain(input: &Input) -> Box<dyn Worker> {
+    let mut validator = Box::<ValidateRangeWorker>::default();
+    let sanitizer = Box::<SanitizeWorker>::default();
+
+    let sanitizer = validator.set_next(sanitizer);
+
+    if input.simulation_steps.is_empty() {
+        let solver = Box::<SolverWorker>::default();
+        let printer = Box::<PrintWorker>::default();
+        sanitizer.set_next(solver).set_next(printer);
+    } else {
+        let simulator = Box::<SimulatiorWorker>::default();
+        sanitizer.set_next(simulator);
+    }
+
+    validator
+}
+
+fn build_state(input: Input) -> State {
+    State {
+        input,
+        board: None,
+        command: Input::command(),
+        solution: None,
+    }
 }
 
 fn set_up_logger(input: &Input) {

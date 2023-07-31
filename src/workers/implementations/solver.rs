@@ -1,25 +1,38 @@
 use log::debug;
 
-use crate::{solvers::gf2, workers::worker::Worker};
+use crate::{
+    solvers::gf2,
+    workers::worker::{State, Worker},
+};
 
-struct SolverWorker<'a> {
-    next: Option<&'a mut dyn Worker<'a>>,
+#[derive(Default)]
+pub struct SolverWorker {
+    next: Option<Box<dyn Worker>>,
 }
 
-impl<'a> Worker<'a> for SolverWorker<'a> {
-    fn handle(&mut self, state: &mut crate::workers::worker::State) {
+impl Worker for SolverWorker {
+    fn handle(&mut self, state: &mut State) -> Result<(), clap::error::Error> {
+        debug!("Active lights: {:?}", state.input.lights);
+        debug!("Rows: {:?}", state.input.rows);
+        debug!("Cols: {:?}", state.input.cols);
+        debug!("Origin location: {:?}", state.input.origin_location);
+
         debug!("Searching for solution ...");
+        let board = state.board.as_deref().expect("Unable to access board");
 
-        let solution = gf2::solve(state.board);
+        let solution = gf2::solve(board);
         debug!("Final solution: {:?}", &solution);
+
+        state.solution = solution;
+
+        Ok(())
     }
 
-    fn set_next(&'a mut self, next: &'a mut dyn Worker<'a>) -> &'a mut dyn Worker<'a> {
-        self.next = Some(next);
-        self
+    fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
+        &mut **self.next.insert(next)
     }
 
-    fn next(&'a mut self) -> &mut Option<&mut dyn Worker<'a>> {
-        &mut self.next
+    fn next(&mut self) -> Option<&mut dyn Worker> {
+        self.next.as_deref_mut()
     }
 }
