@@ -1,8 +1,10 @@
 use log::debug;
 
 use crate::{
+    chain_of_responsability::{
+        chainable::Chainable, handler::Handler, state::State, worker::Worker,
+    },
     solvers::gf2,
-    workers::worker::{Chainable, Handler, State, Worker},
 };
 
 #[derive(Default)]

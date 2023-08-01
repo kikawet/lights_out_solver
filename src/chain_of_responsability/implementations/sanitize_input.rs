@@ -1,7 +1,9 @@
 use crate::{
     args::Origin,
+    chain_of_responsability::{
+        chainable::Chainable, handler::Handler, state::State, worker::Worker,
+    },
     solvers::board::Binary,
-    workers::worker::{Chainable, Handler, State, Worker},
 };
 
 #[derive(Default)]

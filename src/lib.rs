@@ -1,6 +1,6 @@
 pub mod args;
+pub mod chain_of_responsability;
 pub mod solvers;
-pub mod workers;
 
 #[cfg(test)]
 mod args_tests {

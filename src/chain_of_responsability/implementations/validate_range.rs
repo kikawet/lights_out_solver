@@ -1,6 +1,8 @@
 use clap::error::ErrorKind;
 
-use crate::workers::worker::{Chainable, Handler, State, Worker};
+use crate::chain_of_responsability::{
+    chainable::Chainable, handler::Handler, state::State, worker::Worker,
+};
 
 #[derive(Default)]
 pub struct ValidateRangeWorker {

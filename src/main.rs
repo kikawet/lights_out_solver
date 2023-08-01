@@ -1,12 +1,14 @@
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 use lights_out_solver::{
     args::Input,
-    workers::{
+    chain_of_responsability::{
+        chainable::Chainable,
         implementations::{
             print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatorWorker,
             solver::SolverWorker, validate_range::ValidateRangeWorker,
         },
-        worker::{Chainable, State, Worker},
+        state::State,
+        worker::Worker,
     },
 };
 use log::info;
@@ -18,7 +20,7 @@ fn main() {
     set_up_logger(&input);
 
     let mut worker = get_worker_chain(&input);
-    let state = build_state(input);
+    let state = State::new(input);
 
     worker.execute(state).expect("okey dokey");
 }
@@ -39,15 +41,6 @@ fn get_worker_chain(input: &Input) -> Box<dyn Worker> {
     }
 
     validator
-}
-
-fn build_state(input: Input) -> State {
-    State {
-        input,
-        board: None,
-        command: Input::command(),
-        solution: None,
-    }
 }
 
 fn set_up_logger(input: &Input) {

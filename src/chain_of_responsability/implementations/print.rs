@@ -2,11 +2,11 @@ use log::debug;
 
 use crate::{
     args::Display,
-    solvers::board::Board,
-    workers::{
-        implementations::sanitize_input::SanitizeWorker,
-        worker::{Chainable, Handler, State, Worker},
+    chain_of_responsability::{
+        chainable::Chainable, handler::Handler, implementations::sanitize_input::SanitizeWorker,
+        state::State, worker::Worker,
     },
+    solvers::board::Board,
 };
 
 #[derive(Default)]
