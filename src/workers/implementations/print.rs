@@ -5,7 +5,7 @@ use crate::{
     solvers::board::Board,
     workers::{
         implementations::sanitize_input::SanitizeWorker,
-        worker::{State, Worker},
+        worker::{Chainable, Handler, State, Worker},
     },
 };
 
@@ -43,11 +43,11 @@ impl PrintWorker {
     }
 }
 
-impl Worker for PrintWorker {
-    fn handle(&mut self, state: &mut State) -> Result<(), clap::error::Error> {
+impl Handler for PrintWorker {
+    fn handle(&mut self, state: State) -> Result<State, clap::error::Error> {
         let display_mode = state.input.display_mode;
         debug!("Display mode: {:?}", display_mode);
-        let Some(solution) = &state.solution else { return Ok(()) };
+        let Some(solution) = &state.solution else { return Ok(state) };
         let board = state.board.as_deref().expect("Unable to access board");
 
         if display_mode == Display::Simple || display_mode == Display::All {
@@ -77,9 +77,11 @@ impl Worker for PrintWorker {
             println!("{}", Self::vec_to_str(&mapped_board, board.cols()));
         }
 
-        Ok(())
+        Ok(state)
     }
+}
 
+impl Chainable for PrintWorker {
     fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
         &mut **self.next.insert(next)
     }

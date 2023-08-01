@@ -6,7 +6,7 @@ use lights_out_solver::{
             print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatiorWorker,
             solver::SolverWorker, validate_range::ValidateRangeWorker,
         },
-        worker::{State, Worker},
+        worker::{Chainable, State, Worker},
     },
 };
 use log::info;
@@ -18,9 +18,9 @@ fn main() {
     set_up_logger(&input);
 
     let mut worker = get_worker_chain(&input);
-    let mut state = build_state(input);
+    let state = build_state(input);
 
-    worker.execute(&mut state).expect("okey dokey");
+    worker.execute(state).expect("okey dokey");
 }
 
 fn get_worker_chain(input: &Input) -> Box<dyn Worker> {

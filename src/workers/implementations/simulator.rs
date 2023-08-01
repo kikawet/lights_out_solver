@@ -2,7 +2,7 @@ use log::debug;
 
 use crate::{
     solvers::board::Board,
-    workers::worker::{State, Worker},
+    workers::worker::{Chainable, Handler, State, Worker},
 };
 
 use super::print::PrintWorker;
@@ -18,8 +18,8 @@ impl SimulatiorWorker {
     }
 }
 
-impl Worker for SimulatiorWorker {
-    fn handle(&mut self, state: &mut State) -> Result<(), clap::error::Error> {
+impl Handler for SimulatiorWorker {
+    fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
         let board = state.board.as_deref_mut().expect("Unable to access board");
         let steps = &state.input.simulation_steps;
         debug!(
@@ -35,9 +35,11 @@ impl Worker for SimulatiorWorker {
 
         debug!("Board after simulation: {}", Self::prettify_board(board));
 
-        Ok(())
+        Ok(state)
     }
+}
 
+impl Chainable for SimulatiorWorker {
     fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
         &mut **self.next.insert(next)
     }

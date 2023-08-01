@@ -1,7 +1,7 @@
 use crate::{
     args::Origin,
     solvers::board::Binary,
-    workers::worker::{State, Worker},
+    workers::worker::{Chainable, Handler, State, Worker},
 };
 
 #[derive(Default)]
@@ -50,8 +50,8 @@ impl SanitizeWorker {
     }
 }
 
-impl Worker for SanitizeWorker {
-    fn handle(&mut self, state: &mut State) -> Result<(), clap::error::Error> {
+impl Handler for SanitizeWorker {
+    fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
         let rows = state.input.rows;
         let cols = state.input.cols;
         let origin = state.input.origin_location;
@@ -68,9 +68,11 @@ impl Worker for SanitizeWorker {
 
         state.board = Some(Box::new(Binary::new_from_positions(lights, cols, rows)));
 
-        Ok(())
+        Ok(state)
     }
+}
 
+impl Chainable for SanitizeWorker {
     fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
         &mut **self.next.insert(next)
     }

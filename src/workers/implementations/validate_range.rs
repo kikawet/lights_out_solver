@@ -1,14 +1,14 @@
 use clap::error::ErrorKind;
 
-use crate::workers::worker::{State, Worker};
+use crate::workers::worker::{Chainable, Handler, State, Worker};
 
 #[derive(Default)]
 pub struct ValidateRangeWorker {
     next: Option<Box<dyn Worker>>,
 }
 
-impl Worker for ValidateRangeWorker {
-    fn handle(&mut self, state: &mut State) -> Result<(), clap::error::Error> {
+impl Handler for ValidateRangeWorker {
+    fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
         let rows = state.input.rows;
         let cols = state.input.cols;
         let max_value = rows * cols;
@@ -20,9 +20,11 @@ impl Worker for ValidateRangeWorker {
             ));
         }
 
-        Ok(())
+        Ok(state)
     }
+}
 
+impl Chainable for ValidateRangeWorker {
     fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
         &mut **self.next.insert(next)
     }
