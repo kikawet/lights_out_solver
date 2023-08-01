@@ -8,17 +8,17 @@ use crate::{
 use super::print::PrintWorker;
 
 #[derive(Default)]
-pub struct SimulatiorWorker {
+pub struct SimulatorWorker {
     next: Option<Box<dyn Worker>>,
 }
 
-impl SimulatiorWorker {
+impl SimulatorWorker {
     fn prettify_board(board: &(impl Board + ?Sized)) -> String {
         PrintWorker::vec_to_str(&PrintWorker::board_to_vec(board), board.cols())
     }
 }
 
-impl Handler for SimulatiorWorker {
+impl Handler for SimulatorWorker {
     fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
         let board = state.board.as_deref_mut().expect("Unable to access board");
         let steps = &state.input.simulation_steps;
@@ -39,7 +39,7 @@ impl Handler for SimulatiorWorker {
     }
 }
 
-impl Chainable for SimulatiorWorker {
+impl Chainable for SimulatorWorker {
     fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
         &mut **self.next.insert(next)
     }

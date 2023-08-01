@@ -3,7 +3,7 @@ use lights_out_solver::{
     args::Input,
     workers::{
         implementations::{
-            print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatiorWorker,
+            print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatorWorker,
             solver::SolverWorker, validate_range::ValidateRangeWorker,
         },
         worker::{Chainable, State, Worker},
@@ -34,7 +34,7 @@ fn get_worker_chain(input: &Input) -> Box<dyn Worker> {
         let printer = Box::<PrintWorker>::default();
         sanitizer.set_next(solver).set_next(printer);
     } else {
-        let simulator = Box::<SimulatiorWorker>::default();
+        let simulator = Box::<SimulatorWorker>::default();
         sanitizer.set_next(simulator);
     }
 
