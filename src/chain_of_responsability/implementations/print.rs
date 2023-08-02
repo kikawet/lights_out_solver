@@ -6,13 +6,11 @@ use crate::{
         chainable::Chainable, handler::Handler, implementations::sanitize_input::SanitizeWorker,
         state::State, worker::Worker,
     },
+    define_chainable,
     solvers::board::Board,
 };
 
-#[derive(Default)]
-pub struct PrintWorker {
-    next: Option<Box<dyn Worker>>,
-}
+define_chainable!(PrintWorker);
 
 impl PrintWorker {
     pub fn board_to_vec(board: &(impl Board + ?Sized)) -> Vec<String> {
@@ -78,15 +76,5 @@ impl Handler for PrintWorker {
         }
 
         Ok(state)
-    }
-}
-
-impl Chainable for PrintWorker {
-    fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
-        &mut **self.next.insert(next)
-    }
-
-    fn next(&mut self) -> Option<&mut dyn Worker> {
-        self.next.as_deref_mut()
     }
 }

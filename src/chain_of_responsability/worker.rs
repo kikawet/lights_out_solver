@@ -1,10 +1,10 @@
 use super::{chainable::Chainable, handler::Handler, state::State};
 
-pub trait Worker: 'static + Chainable + Handler {
+pub trait Worker: Chainable + Handler {
     fn execute(&mut self, state: State) -> Result<State, clap::Error>;
 }
 
-impl<T: Handler + Chainable + 'static> Worker for T {
+impl<T: Handler + Chainable> Worker for T {
     fn execute(&mut self, state: State) -> Result<State, clap::Error> {
         let new_state = self.handle(state)?;
 

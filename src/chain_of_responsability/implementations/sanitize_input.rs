@@ -3,13 +3,11 @@ use crate::{
     chain_of_responsability::{
         chainable::Chainable, handler::Handler, state::State, worker::Worker,
     },
+    define_chainable,
     solvers::board::Binary,
 };
 
-#[derive(Default)]
-pub struct SanitizeWorker {
-    next: Option<Box<dyn Worker>>,
-}
+define_chainable!(SanitizeWorker);
 
 impl SanitizeWorker {
     /**
@@ -71,15 +69,5 @@ impl Handler for SanitizeWorker {
         state.board = Some(Box::new(Binary::new_from_positions(lights, cols, rows)));
 
         Ok(state)
-    }
-}
-
-impl Chainable for SanitizeWorker {
-    fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
-        &mut **self.next.insert(next)
-    }
-
-    fn next(&mut self) -> Option<&mut dyn Worker> {
-        self.next.as_deref_mut()
     }
 }

@@ -4,13 +4,11 @@ use crate::{
     chain_of_responsability::{
         chainable::Chainable, handler::Handler, state::State, worker::Worker,
     },
+    define_chainable,
     solvers::gf2,
 };
 
-#[derive(Default)]
-pub struct SolverWorker {
-    next: Option<Box<dyn Worker>>,
-}
+define_chainable!(SolverWorker);
 
 impl Handler for SolverWorker {
     fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
@@ -28,15 +26,5 @@ impl Handler for SolverWorker {
         state.solution = solution;
 
         Ok(state)
-    }
-}
-
-impl Chainable for SolverWorker {
-    fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
-        &mut **self.next.insert(next)
-    }
-
-    fn next(&mut self) -> Option<&mut dyn Worker> {
-        self.next.as_deref_mut()
     }
 }

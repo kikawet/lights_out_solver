@@ -1,13 +1,13 @@
 use clap::error::ErrorKind;
 
-use crate::chain_of_responsability::{
-    chainable::Chainable, handler::Handler, state::State, worker::Worker,
+use crate::{
+    chain_of_responsability::{
+        chainable::Chainable, handler::Handler, state::State, worker::Worker,
+    },
+    define_chainable,
 };
 
-#[derive(Default)]
-pub struct ValidateRangeWorker {
-    next: Option<Box<dyn Worker>>,
-}
+define_chainable!(ValidateRangeWorker);
 
 impl Handler for ValidateRangeWorker {
     fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
@@ -23,15 +23,5 @@ impl Handler for ValidateRangeWorker {
         }
 
         Ok(state)
-    }
-}
-
-impl Chainable for ValidateRangeWorker {
-    fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
-        &mut **self.next.insert(next)
-    }
-
-    fn next(&mut self) -> Option<&mut dyn Worker> {
-        self.next.as_deref_mut()
     }
 }

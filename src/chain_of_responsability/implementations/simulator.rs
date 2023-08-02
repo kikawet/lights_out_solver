@@ -4,15 +4,13 @@ use crate::{
     chain_of_responsability::{
         chainable::Chainable, handler::Handler, state::State, worker::Worker,
     },
+    define_chainable,
     solvers::board::Board,
 };
 
 use super::print::PrintWorker;
 
-#[derive(Default)]
-pub struct SimulatorWorker {
-    next: Option<Box<dyn Worker>>,
-}
+define_chainable!(SimulatorWorker);
 
 impl SimulatorWorker {
     fn prettify_board(board: &(impl Board + ?Sized)) -> String {
@@ -38,15 +36,5 @@ impl Handler for SimulatorWorker {
         debug!("Board after simulation: {}", Self::prettify_board(board));
 
         Ok(state)
-    }
-}
-
-impl Chainable for SimulatorWorker {
-    fn set_next(&mut self, next: Box<dyn Worker>) -> &mut dyn Worker {
-        &mut **self.next.insert(next)
-    }
-
-    fn next(&mut self) -> Option<&mut dyn Worker> {
-        self.next.as_deref_mut()
     }
 }
