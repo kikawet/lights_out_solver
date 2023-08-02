@@ -22,7 +22,9 @@ fn main() {
     let mut worker = get_worker_chain(&input);
     let state = State::new(input);
 
-    worker.execute(state).expect("okey dokey");
+    if let Some(err) = worker.execute(state).err() {
+        err.exit();
+    }
 }
 
 fn get_worker_chain(input: &Input) -> Box<dyn Worker> {
