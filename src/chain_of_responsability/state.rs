@@ -10,6 +10,7 @@ pub struct State {
 }
 
 impl State {
+    #[must_use]
     pub fn new(input: Input) -> Self {
         Self {
             input,

@@ -1,6 +1,9 @@
 use super::{chainable::Chainable, handler::Handler, state::State};
 
 pub trait Worker: Chainable + Handler {
+    /// # Errors
+    ///
+    /// Only handlers will return Error
     fn execute(&mut self, state: State) -> Result<State, clap::Error>;
 }
 

@@ -14,11 +14,11 @@ pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
             for sub_row in 0..rows {
                 for sub_col in 0..cols {
                     let sub_index = sub_row * cols + sub_col;
-                    matrix[index][sub_index] = blank.get(sub_col, sub_row).unwrap();
+                    matrix[index][sub_index] = blank.get(sub_col, sub_row)?;
                 }
             }
             blank.trigger_coord(col, row);
-            expected[index] = (board.get(col, row).unwrap() + 1) % 2;
+            expected[index] = (board.get(col, row)? + 1) % 2;
         }
     }
 
