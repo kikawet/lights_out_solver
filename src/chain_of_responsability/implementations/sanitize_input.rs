@@ -10,42 +10,45 @@ use crate::{
 define_chainable!(SanitizeWorker);
 
 impl SanitizeWorker {
-    /**
-     * Transformation are symectric so calling this twice with the same state is going to undo the changes
-     */
+    /// Transformation are symectric so calling this twice with the same state is going to undo the changes
+    /// It rotates the indices to the origin Top Left
     pub fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, location: Origin) {
         match location {
-            Origin::TopRight => Self::reorder_cols(indices, cols),
-            Origin::BottomLeft => Self::reorder_rows(indices, rows),
-            Origin::BottomRight => {
-                Self::reorder_cols(indices, cols);
-                Self::reorder_rows(indices, rows);
-            }
+            Origin::TopRight => Self::reorder_cols(indices, rows, cols),
+            Origin::BottomLeft => Self::reorder_rows(indices, rows, cols),
+            Origin::BottomRight => Self::reorder_rows_cols(indices, rows, cols),
             Origin::TopLeft => { /*Do nothing 👀*/ }
         };
     }
 
-    fn reorder_rows(indices: &mut [usize], rows: usize) {
-        let rows = rows as isize;
+    fn reorder_cols(indices: &mut [usize], _rows: usize, cols: usize) {
+        for index in indices.iter_mut() {
+            let col = *index % cols;
+            let offset = cols - 1;
 
-        for undex in indices.iter_mut() {
-            let index = *undex as isize;
-
-            let row = (index - 1) / rows;
-            let offset = rows * (rows - 1 - 2 * row);
-            *undex = (index + offset) as usize;
+            *index += offset;
+            *index -= 2 * col
         }
     }
 
-    fn reorder_cols(indices: &mut [usize], cols: usize) {
-        let cols = cols as isize;
+    fn reorder_rows(indices: &mut [usize], rows: usize, cols: usize) {
+        for index in indices.iter_mut() {
+            let row = *index / cols;
+            let offset = cols * rows - cols;
 
-        for undex in indices.iter_mut() {
-            let index = *undex as isize;
+            *index += offset;
+            *index -= 2 * row * cols;
+        }
+    }
 
-            let col = (index - 1) % cols;
-            let offset = cols - 1 - 2 * col;
-            *undex = (index + offset) as usize;
+    fn reorder_rows_cols(indices: &mut [usize], rows: usize, cols: usize) {
+        for index in indices.iter_mut() {
+            let row = *index / cols;
+            let col = *index % cols;
+            let offset = rows * cols - 1;
+
+            *index += offset;
+            *index -= 2 * (row * cols + col);
         }
     }
 }
@@ -59,12 +62,12 @@ impl Handler for SanitizeWorker {
         let lights = &mut state.input.lights;
         lights.sort_unstable();
         lights.dedup();
-        Self::rotate_light_indices(lights, cols, rows, origin);
         lights.iter_mut().for_each(|val| *val -= 1);
+        Self::rotate_light_indices(lights, cols, rows, origin);
 
         let simulation_steps = &mut state.input.simulation_steps;
-        Self::rotate_light_indices(simulation_steps, cols, rows, origin);
         simulation_steps.iter_mut().for_each(|val| *val -= 1);
+        Self::rotate_light_indices(simulation_steps, cols, rows, origin);
 
         state.board = Some(Box::new(Binary::new_from_positions(lights, cols, rows)));
 
