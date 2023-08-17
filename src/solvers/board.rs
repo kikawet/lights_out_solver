@@ -13,38 +13,41 @@ pub trait Board {
 }
 
 #[derive(Debug)]
-pub struct BaseBoard {
+pub struct Binary {
     cols: usize,
     rows: usize,
     board: Vec<usize>,
 }
 
-impl BaseBoard {
-    pub fn new_blank(cols: usize, rows: usize) -> BaseBoard {
-        BaseBoard {
+impl Binary {
+    #[must_use]
+    pub fn new_blank(cols: usize, rows: usize) -> Binary {
+        Binary {
             cols,
             rows,
             board: vec![0usize; cols * rows],
         }
     }
 
-    pub fn new_from_positions(active: &[usize], cols: usize, rows: usize) -> BaseBoard {
+    #[must_use]
+    pub fn new_from_positions(active: &[usize], cols: usize, rows: usize) -> Binary {
         let mut board = vec![0usize; cols * rows];
 
         active.iter().for_each(|position| board[*position] = 1);
 
-        BaseBoard { cols, rows, board }
+        Binary { cols, rows, board }
     }
 
-    pub fn new_from_values(active: &[bool], cols: usize, rows: usize) -> BaseBoard {
+    #[must_use]
+    pub fn new_from_values(active: &[bool], cols: usize, rows: usize) -> Binary {
         let mut board = vec![0usize; cols * rows];
 
         board
             .iter_mut()
             .zip(active.iter())
-            .for_each(|(b, &a)| *b = a as usize);
+            .for_each(|(b, &a)| *b = usize::from(a));
 
-        BaseBoard { cols, rows, board }
+        Binary { cols, rows, board }
     }
 
     fn get_index(&self, col: usize, row: usize) -> usize {
@@ -52,7 +55,7 @@ impl BaseBoard {
     }
 }
 
-impl Board for BaseBoard {
+impl Board for Binary {
     fn size(&self) -> (usize, usize) {
         (self.cols, self.rows)
     }
@@ -105,15 +108,15 @@ impl Board for BaseBoard {
     }
 
     fn trigger_coord(&mut self, col: usize, row: usize) -> &mut dyn Board {
-        if col >= self.cols || row >= self.rows {
-            return self;
-        }
-        fn switch(this: &mut BaseBoard, col: usize, row: usize) {
+        fn switch(this: &mut Binary, col: usize, row: usize) {
             match this.get(col, row) {
                 Some(1) => this.set(col, row, 0),
                 Some(0) => this.set(col, row, 1),
                 _ => false,
             };
+        }
+        if col >= self.cols || row >= self.rows {
+            return self;
         }
         if row > 0 {
             switch(self, col, row - 1);

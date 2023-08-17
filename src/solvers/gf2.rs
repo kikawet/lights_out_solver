@@ -1,10 +1,10 @@
-use super::board::{BaseBoard, Board};
+use super::board::{Binary, Board};
 
 pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
     let (cols, rows) = board.size();
 
     let mut matrix = vec![vec![0usize; rows * cols]; rows * cols];
-    let mut blank = BaseBoard::new_blank(cols, rows);
+    let mut blank = Binary::new_blank(cols, rows);
     let mut expected = vec![0usize; cols * rows];
 
     for row in 0..rows {
@@ -14,11 +14,11 @@ pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
             for sub_row in 0..rows {
                 for sub_col in 0..cols {
                     let sub_index = sub_row * cols + sub_col;
-                    matrix[index][sub_index] = blank.get(sub_col, sub_row).unwrap();
+                    matrix[index][sub_index] = blank.get(sub_col, sub_row)?;
                 }
             }
             blank.trigger_coord(col, row);
-            expected[index] = (board.get(col, row).unwrap() + 1) % 2;
+            expected[index] = (board.get(col, row)? + 1) % 2;
         }
     }
 
@@ -34,33 +34,17 @@ pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
     })
 }
 fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<usize>> {
-    let mut solution = expected;
-    let rows = mat.len();
-    if rows == 0 {
-        return None;
-    }
-    let cols = mat[0].len();
-    if cols == 0 {
-        return None;
-    }
-
     fn swap(m: &mut [Vec<usize>], sol: &mut [usize], i: usize, j: usize) {
         if i == j {
             return;
         }
 
-        let tmpi = m[i].to_vec();
-        let tmpj = m[j].to_vec();
-        m[i] = tmpj;
-        m[j] = tmpi;
-
+        m.swap(i, j);
         sol.swap(i, j);
     }
 
     fn add(m: &mut [Vec<usize>], bs: &mut [usize], i: usize, j: usize) {
-        if i == j {
-            panic!("trying to add row to itself");
-        }
+        assert!(i != j, "trying to add row to itself");
 
         for x in 0..m[i].len() {
             m[i][x] += m[j][x];
@@ -69,6 +53,16 @@ fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Ve
 
         bs[i] += bs[j];
         bs[i] %= 2;
+    }
+
+    let mut solution = expected;
+    let rows = mat.len();
+    if rows == 0 {
+        return None;
+    }
+    let cols = mat[0].len();
+    if cols == 0 {
+        return None;
     }
 
     for pivot in 0..rows {

@@ -5,7 +5,7 @@ pub mod recursive;
 #[cfg(test)]
 mod solver_tests {
     use crate::solvers::{
-        board::{BaseBoard, Board},
+        board::{Binary, Board},
         gf2, recursive,
     };
 
@@ -15,7 +15,7 @@ mod solver_tests {
 
     #[test]
     fn board_simulate_tl() {
-        let mut board = BaseBoard::new_blank(3, 3);
+        let mut board = Binary::new_blank(3, 3);
         board.trigger_index(0);
 
         let expected = [
@@ -28,7 +28,7 @@ mod solver_tests {
 
     #[test]
     fn board_simulate_mm() {
-        let mut board = BaseBoard::new_blank(3, 3);
+        let mut board = Binary::new_blank(3, 3);
         board.trigger_index(4);
 
         let expected = [
@@ -41,7 +41,7 @@ mod solver_tests {
 
     #[test]
     fn board_simulate_br_mm() {
-        let mut board = BaseBoard::new_blank(3, 3);
+        let mut board = Binary::new_blank(3, 3);
         board.trigger_index(4);
         board.trigger_index(8);
 
@@ -55,7 +55,7 @@ mod solver_tests {
 
     #[test]
     fn board_simulate_ml_mr() {
-        let mut board = BaseBoard::new_blank(3, 3);
+        let mut board = Binary::new_blank(3, 3);
         board.trigger_index(3);
         board.trigger_index(5);
 
@@ -69,33 +69,33 @@ mod solver_tests {
 
     #[test]
     fn test_gf2_solves() {
-        let mut board = BaseBoard::new_blank(3, 3);
+        let mut board = Binary::new_blank(3, 3);
 
         let solution = gf2::solve(&board).unwrap();
 
-        solution.iter().for_each(|&step| {
+        for &step in &solution {
             board.trigger_index(step);
-        });
+        }
 
         assert!(board.is_solved());
     }
 
     #[test]
     fn test_recursive_solves() {
-        let mut board = BaseBoard::new_blank(3, 3);
+        let mut board = Binary::new_blank(3, 3);
 
         let solution = recursive::solve(&board).unwrap();
 
-        solution.iter().for_each(|&step| {
+        for &step in &solution {
             board.trigger_index(step);
-        });
+        }
 
         assert!(board.is_solved());
     }
 
     #[test]
     fn test_gf2_minimun_solution() {
-        let mut board = BaseBoard::new_from_values(
+        let mut board = Binary::new_from_values(
             &[
                 true, false, true, //
                 false, false, false, //
@@ -107,9 +107,9 @@ mod solver_tests {
 
         let solution = gf2::solve(&board).unwrap();
 
-        solution.iter().for_each(|&step| {
+        for &step in &solution {
             board.trigger_index(step);
-        });
+        }
 
         assert!(board.is_solved());
 
@@ -118,7 +118,7 @@ mod solver_tests {
 
     #[test]
     fn test_recursive_minimun_solution() {
-        let mut board = BaseBoard::new_from_values(
+        let mut board = Binary::new_from_values(
             &[
                 true, false, true, //
                 false, false, false, //
@@ -130,9 +130,9 @@ mod solver_tests {
 
         let solution = recursive::solve(&board).unwrap();
 
-        solution.iter().for_each(|&step| {
+        for &step in &solution {
             board.trigger_index(step);
-        });
+        }
 
         assert!(board.is_solved());
 
