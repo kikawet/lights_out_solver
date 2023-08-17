@@ -27,7 +27,7 @@ impl SanitizeWorker {
             let offset = cols - 1;
 
             *index += offset;
-            *index -= 2 * col
+            *index -= 2 * col;
         }
     }
 
