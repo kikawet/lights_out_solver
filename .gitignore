@@ -20,7 +20,8 @@ Cargo.lock
 # End of https://www.toptal.com/developers/gitignore/api/rust
 *.sarif
 
-# Package Build
+### PKGBUILD ###
 *.zst
 *.gz
 pkg/
+lights_out_solver/
