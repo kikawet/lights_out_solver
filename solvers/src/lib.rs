@@ -4,7 +4,7 @@ pub mod recursive;
 
 #[cfg(test)]
 mod solver_tests {
-    use crate::solvers::{
+    use crate::{
         board::{Binary, Board},
         gf2, recursive,
     };

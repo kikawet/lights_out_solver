@@ -10,13 +10,13 @@ use crate::{
 define_chainable!(ValidateRangeWorker);
 
 impl Handler for ValidateRangeWorker {
-    fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
-        let rows = state.input.rows;
-        let cols = state.input.cols;
+    fn handle(&self, state: State) -> Result<State, clap::error::Error> {
+        let rows = state.args.rows;
+        let cols = state.args.cols;
         let max_value = rows * cols;
 
-        if let Some(out_of_range) = state.input.lights.iter().find(|&&it| it > max_value) {
-            return Err(state.command.error(
+        if let Some(out_of_range) = state.args.lights.iter().find(|&&it| it > max_value) {
+            return Err(clap::Error::raw(
                 ErrorKind::ArgumentConflict,
                 format!("Index {out_of_range} out of range for a {rows}x{cols} size"),
             ));

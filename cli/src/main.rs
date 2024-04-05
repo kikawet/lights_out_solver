@@ -1,22 +1,24 @@
-use clap::Parser;
-use lights_out_solver::{
-    args::Input,
-    chain_of_responsability::{
-        chainable::Chainable,
-        implementations::{
-            print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatorWorker,
-            solver::SolverWorker, validate_range::ValidateRangeWorker,
-        },
-        state::State,
-        worker::Worker,
+mod args;
+mod chain_of_responsability;
+
+use args::CliArgs;
+use chain_of_responsability::{
+    chainable::Chainable,
+    implementations::{
+        print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatorWorker,
+        solver::SolverWorker, validate_range::ValidateRangeWorker,
     },
+    state::State,
+    worker::Worker,
 };
+use clap::Parser;
+
 use log::info;
 
 use simple_logger::SimpleLogger;
 
 fn main() {
-    let input = Input::parse();
+    let input = CliArgs::parse();
     set_up_logger(&input);
 
     let mut worker = get_worker_chain(&input);
@@ -27,13 +29,13 @@ fn main() {
     }
 }
 
-fn get_worker_chain(input: &Input) -> Box<dyn Worker> {
+fn get_worker_chain(args: &CliArgs) -> Box<dyn Worker> {
     let mut validator = Box::<ValidateRangeWorker>::default();
     let sanitizer = Box::<SanitizeWorker>::default();
 
     let sanitizer = validator.set_next(sanitizer);
 
-    if input.simulation_steps.is_empty() {
+    if args.simulation_steps.is_empty() {
         let solver = Box::<SolverWorker>::default();
         let printer = Box::<PrintWorker>::default();
         sanitizer.set_next(solver).set_next(printer);
@@ -45,8 +47,8 @@ fn get_worker_chain(input: &Input) -> Box<dyn Worker> {
     validator
 }
 
-fn set_up_logger(input: &Input) {
-    if input.verbose {
+fn set_up_logger(args: &CliArgs) {
+    if args.verbose {
         SimpleLogger::new()
             .with_level(log::LevelFilter::Debug)
             .init()

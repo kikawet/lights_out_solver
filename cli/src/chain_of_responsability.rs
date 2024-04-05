@@ -18,7 +18,7 @@ macro_rules! define_chainable {
                 &mut **self.next.insert(next)
             }
 
-            fn next(&mut self) -> Option<&mut (dyn Worker + '_)> {
+            fn next(&mut self) -> Option<&mut (dyn Worker)> {
                 self.next.as_deref_mut().map(|r| r as _)
             }
         }

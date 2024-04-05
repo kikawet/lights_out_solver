@@ -1,4 +1,5 @@
 use log::debug;
+use solvers::board::Board;
 
 use crate::{
     args::Display,
@@ -7,7 +8,6 @@ use crate::{
         state::State, worker::Worker,
     },
     define_chainable,
-    solvers::board::Board,
 };
 
 define_chainable!(PrintWorker);
@@ -42,10 +42,12 @@ impl PrintWorker {
 }
 
 impl Handler for PrintWorker {
-    fn handle(&mut self, state: State) -> Result<State, clap::error::Error> {
-        let display_mode = state.input.display_mode;
+    fn handle(&self, state: State) -> Result<State, clap::error::Error> {
+        let display_mode = state.args.display_mode;
         debug!("Display mode: {:?}", display_mode);
-        let Some(solution) = &state.solution else { return Ok(state) };
+        let Some(solution) = &state.solution else {
+            return Ok(state);
+        };
         let board = state.board.as_deref().expect("Unable to access board");
 
         if display_mode == Display::Simple || display_mode == Display::All {
@@ -59,7 +61,7 @@ impl Handler for PrintWorker {
                 &mut solution,
                 cols,
                 rows,
-                state.input.origin_location,
+                state.args.origin_location,
             );
 
             println!("{solution:?}");
