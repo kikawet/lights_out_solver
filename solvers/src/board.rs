@@ -1,5 +1,7 @@
 // Credit https://github.com/oovm/deus-rs/blob/master/src/solvers/state2.rs
 
+pub type BoardCell = Option<usize>;
+
 pub trait Board {
     fn size(&self) -> (usize, usize);
     fn cols(&self) -> usize;
@@ -7,7 +9,7 @@ pub trait Board {
     fn is_solved(&self) -> bool;
     fn trigger_coord(&mut self, col: usize, row: usize) -> &mut dyn Board;
     fn trigger_index(&mut self, index: usize) -> &mut dyn Board;
-    fn get(&self, col: usize, row: usize) -> Option<usize>;
+    fn get(&self, col: usize, row: usize) -> BoardCell;
     fn set(&mut self, col: usize, row: usize, value: usize) -> bool;
     fn iter(&self) -> std::slice::Iter<'_, usize>;
 }
