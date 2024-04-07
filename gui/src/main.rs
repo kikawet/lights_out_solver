@@ -14,13 +14,13 @@ fn main() {
         .init()
         .expect("Unable to start logger");
 
+    //TODO: read config from env or file
+    let config = GuiConfigBuilder::new().build();
+
     eframe::run_native(
         "Lights Out Solver",
         eframe::NativeOptions::default(),
-        Box::new(|_cc| {
-            let config = GuiConfigBuilder::new().build();
-            Box::new(LOSGui::new(config))
-        }),
+        Box::new(|_cc| Box::new(LOSGui::new(config))),
     )
     .expect("Error creating window");
 }
