@@ -9,6 +9,7 @@ pub trait Board {
     fn is_solved(&self) -> bool;
     fn trigger_coord(&mut self, col: usize, row: usize) -> &mut dyn Board;
     fn trigger_index(&mut self, index: usize) -> &mut dyn Board;
+    fn get_index(&self, col: usize, row: usize) -> usize;
     fn get(&self, col: usize, row: usize) -> BoardCell;
     fn set(&mut self, col: usize, row: usize, value: usize) -> bool;
     fn iter(&self) -> std::slice::Iter<'_, usize>;
@@ -50,10 +51,6 @@ impl Binary {
             .for_each(|(b, &a)| *b = usize::from(a));
 
         Binary { cols, rows, board }
-    }
-
-    fn get_index(&self, col: usize, row: usize) -> usize {
-        row * self.cols + col
     }
 }
 
@@ -130,5 +127,9 @@ impl Board for Binary {
         switch(self, col + 1, row);
         switch(self, col, row + 1);
         self
+    }
+
+    fn get_index(&self, col: usize, row: usize) -> usize {
+        row * self.cols + col
     }
 }

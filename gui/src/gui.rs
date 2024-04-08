@@ -10,6 +10,14 @@ pub struct LOSGui {
     config: GuiConfig,
 }
 
+enum RenderEvents {
+    IncreaseRow,
+    DecreaseRow,
+    IncreaseCol,
+    DecreaseCol,
+    TriggerCell(usize),
+}
+
 impl LOSGui {
     pub fn new(config: GuiConfig) -> Self {
         Self {
@@ -33,8 +41,9 @@ impl LOSGui {
             .on_hover_cursor(egui::CursorIcon::PointingHand)
     }
 
-    fn draw_board(&mut self, ui: &mut egui::Ui) {
+    fn draw_board(&mut self, ui: &mut egui::Ui) -> Vec<RenderEvents> {
         let cell_space = 5.;
+        let mut events = vec![];
 
         egui::Grid::new("board")
             .spacing([cell_space, cell_space])
@@ -44,25 +53,23 @@ impl LOSGui {
                         let cell = self.draw_cell(col, row, ui);
 
                         if cell.clicked() {
-                            self.board.trigger_coord(col, row);
+                            events.push(RenderEvents::TriggerCell(self.board.get_index(col, row)));
                         }
                     }
                     ui.end_row();
                 }
             });
+
+        events
     }
 
-    fn update_rows(&mut self, increase: bool) {
-        let rows = if increase {
-            self.board.rows() + 1
-        } else {
-            self.board.rows() - 1
-        };
-
-        self.board = Box::new(Binary::new_blank(self.board.cols(), rows));
+    fn resize_board(&mut self, new_cols: usize, new_rows: usize) {
+        // Replace with empty board bc otherwise may end with impossible state
+        self.board = Box::new(Binary::new_blank(new_cols, new_rows));
     }
 
-    fn render(&mut self, ctx: &egui::Context) {
+    fn render(&mut self, ctx: &egui::Context) -> Vec<RenderEvents> {
+        let mut events = vec![];
         let style = ctx.style();
         let mut frame = egui::Frame::window(&style)
             .inner_margin(egui::Margin::same(self.config.cell_size / 2.));
@@ -72,63 +79,69 @@ impl LOSGui {
         }
 
         egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+            let window_margin = ui.spacing().window_margin;
+            ui.spacing_mut().item_spacing = egui::Vec2::splat(window_margin.left);
+
             egui::ScrollArea::both().show(ui, |ui| {
-                let window_margin = ui.spacing().window_margin;
-                ui.spacing_mut().item_spacing = egui::Vec2::splat(window_margin.left);
-
                 ui.horizontal_top(|ui| {
-                    self.draw_board(ui);
+                    events.append(&mut self.draw_board(ui));
 
-                    let button_inc = egui::Button::new(">");
-                    let button_dec = egui::Button::new("<");
-                    ui.add_sized([self.config.cell_size, self.config.cell_size], button_dec)
-                        .highlight()
-                        .on_hover_cursor(egui::CursorIcon::PointingHand);
-                    ui.add_sized([self.config.cell_size, self.config.cell_size], button_inc)
-                        .highlight()
-                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+                    self.draw_control(
+                        ui,
+                        "⏴",
+                        self.board.cols() > self.config.col_range.start,
+                        || events.push(RenderEvents::DecreaseCol),
+                    );
+                    self.draw_control(
+                        ui,
+                        "⏵",
+                        self.board.cols() < self.config.col_range.end,
+                        || events.push(RenderEvents::IncreaseCol),
+                    );
                 });
 
-                self.draw_row_controls(ui);
+                self.draw_control(
+                    ui,
+                    "⏶",
+                    self.board.rows() > self.config.row_range.start,
+                    || events.push(RenderEvents::DecreaseRow),
+                );
+                self.draw_control(
+                    ui,
+                    "⏷",
+                    self.board.rows() < self.config.row_range.end,
+                    || events.push(RenderEvents::IncreaseRow),
+                );
             });
         });
+
+        events
     }
 
-    fn draw_row_controls(&mut self, ui: &mut egui::Ui) {
-        let button_dec = egui::Button::new("^");
-        let button_inc = egui::Button::new("v");
-
-        ui.add_enabled_ui(self.board.rows() > self.config.row_range.start, |ui| {
+    fn draw_control(
+        &self,
+        ui: &mut egui::Ui,
+        text: impl Into<egui::WidgetText>,
+        enabled: bool,
+        clicked_action: impl FnOnce(),
+    ) {
+        ui.add_enabled_ui(enabled, |ui| {
             let clicked = ui
-                .add_sized([self.config.cell_size, self.config.cell_size], button_dec)
+                .add_sized(
+                    [self.config.cell_size, self.config.cell_size],
+                    egui::Button::new(text),
+                )
                 .highlight()
                 .on_hover_cursor(egui::CursorIcon::PointingHand)
                 .clicked();
 
             if clicked {
-                self.update_rows(false);
-            }
-        });
-        ui.add_enabled_ui(self.board.rows() < self.config.row_range.end, |ui| {
-            let clicked = ui
-                .add_sized([self.config.cell_size, self.config.cell_size], button_inc)
-                .highlight()
-                .on_hover_cursor(egui::CursorIcon::PointingHand)
-                .clicked();
-
-            if clicked {
-                self.update_rows(true);
+                clicked_action()
             }
         });
     }
 
-    fn handle_exit(&mut self, ctx: &egui::Context) {
-        if self.exit {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-            debug!("Exiting requested");
-            self.exit = false;
-        }
-
+    fn handle_keys(&mut self, ctx: &egui::Context) {
         ctx.input_mut(|reader| {
             if reader.consume_shortcut(&self.config.exit_shortcut) {
                 self.exit = true;
@@ -139,8 +152,32 @@ impl LOSGui {
 
 impl eframe::App for LOSGui {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.handle_exit(ctx);
+        if self.exit {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            debug!("Exiting requested");
+            self.exit = false;
+        }
 
-        self.render(ctx);
+        self.handle_keys(ctx);
+
+        let events = self.render(ctx);
+
+        events.into_iter().for_each(|event| match event {
+            RenderEvents::IncreaseRow => {
+                self.resize_board(self.board.cols(), self.board.rows() + 1)
+            }
+            RenderEvents::DecreaseRow => {
+                self.resize_board(self.board.cols(), self.board.rows() - 1)
+            }
+            RenderEvents::IncreaseCol => {
+                self.resize_board(self.board.cols() + 1, self.board.rows())
+            }
+            RenderEvents::DecreaseCol => {
+                self.resize_board(self.board.cols() - 1, self.board.rows())
+            }
+            RenderEvents::TriggerCell(index) => {
+                self.board.trigger_index(index);
+            }
+        });
     }
 }
