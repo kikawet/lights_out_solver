@@ -17,9 +17,19 @@ fn main() {
     //TODO: read config from env or file
     let config = GuiConfigBuilder::new().build();
 
+    let window_size = egui::ViewportBuilder::default()
+        .inner_size
+        .map(|size| size.x.max(size.y))
+        .unwrap_or(720.);
+
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_inner_size([window_size, window_size]),
+        ..Default::default()
+    };
+
     eframe::run_native(
         "Lights Out Solver",
-        eframe::NativeOptions::default(),
+        options,
         Box::new(|_cc| Box::new(LOSGui::new(config))),
     )
     .expect("Error creating window");

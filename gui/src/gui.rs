@@ -1,6 +1,11 @@
+use std::collections::HashSet;
+
 use eframe::egui;
 use log::debug;
-use solvers::board::{Binary, Board};
+use solvers::{
+    board::{Binary, Board},
+    gf2,
+};
 
 use crate::config::GuiConfig;
 
@@ -8,14 +13,17 @@ pub struct LOSGui {
     board: Box<dyn Board>,
     exit: bool,
     config: GuiConfig,
+    solution: Option<HashSet<usize>>, //TODO: solution may be requested but no solution may exists
 }
 
-enum RenderEvents {
+enum Events {
     IncreaseRow,
     DecreaseRow,
     IncreaseCol,
     DecreaseCol,
     TriggerCell(usize),
+    Reset,
+    Solve,
 }
 
 impl LOSGui {
@@ -24,16 +32,28 @@ impl LOSGui {
             board: Box::new(Binary::new_blank(5, 5)),
             exit: false,
             config,
+            solution: None,
         }
     }
 
     pub fn draw_cell(&self, col: usize, row: usize, ui: &mut egui::Ui) -> egui::Response {
-        let checked = self.board.get(col, row).map_or(false, |val| val >= 1);
-        let color = if checked {
-            egui::Color32::RED
-        } else {
-            egui::Color32::DARK_GRAY
+        let active = self.board.get(col, row).map_or(false, |val| val >= 1);
+        let marked = self
+            .solution
+            .as_ref()
+            .map(|solution| {
+                let index = self.board.get_index(col, row);
+                solution.contains(&index)
+            })
+            .unwrap_or_default();
+
+        let color = match (marked, active) {
+            (true, true) => egui::Color32::from_rgb(255, 165, 0), // Orange
+            (true, false) => egui::Color32::GOLD,
+            (false, true) => egui::Color32::RED,
+            (false, false) => egui::Color32::DARK_GRAY,
         };
+
         let button = egui::Button::new("").fill(color);
 
         ui.add_sized([self.config.cell_size, self.config.cell_size], button)
@@ -41,7 +61,7 @@ impl LOSGui {
             .on_hover_cursor(egui::CursorIcon::PointingHand)
     }
 
-    fn draw_board(&mut self, ui: &mut egui::Ui) -> Vec<RenderEvents> {
+    fn draw_board(&mut self, ui: &mut egui::Ui) -> Vec<Events> {
         let cell_space = 5.;
         let mut events = vec![];
 
@@ -53,7 +73,7 @@ impl LOSGui {
                         let cell = self.draw_cell(col, row, ui);
 
                         if cell.clicked() {
-                            events.push(RenderEvents::TriggerCell(self.board.get_index(col, row)));
+                            events.push(Events::TriggerCell(self.board.get_index(col, row)));
                         }
                     }
                     ui.end_row();
@@ -68,7 +88,7 @@ impl LOSGui {
         self.board = Box::new(Binary::new_blank(new_cols, new_rows));
     }
 
-    fn render(&mut self, ctx: &egui::Context) -> Vec<RenderEvents> {
+    fn render(&mut self, ctx: &egui::Context) -> Vec<Events> {
         let mut events = vec![];
         let style = ctx.style();
         let mut frame = egui::Frame::window(&style)
@@ -90,13 +110,13 @@ impl LOSGui {
                         ui,
                         "⏴",
                         self.board.cols() > self.config.col_range.start,
-                        || events.push(RenderEvents::DecreaseCol),
+                        || events.push(Events::DecreaseCol),
                     );
                     self.draw_control(
                         ui,
                         "⏵",
                         self.board.cols() < self.config.col_range.end,
-                        || events.push(RenderEvents::IncreaseCol),
+                        || events.push(Events::IncreaseCol),
                     );
                 });
 
@@ -104,13 +124,13 @@ impl LOSGui {
                     ui,
                     "⏶",
                     self.board.rows() > self.config.row_range.start,
-                    || events.push(RenderEvents::DecreaseRow),
+                    || events.push(Events::DecreaseRow),
                 );
                 self.draw_control(
                     ui,
                     "⏷",
                     self.board.rows() < self.config.row_range.end,
-                    || events.push(RenderEvents::IncreaseRow),
+                    || events.push(Events::IncreaseRow),
                 );
             });
         });
@@ -141,12 +161,40 @@ impl LOSGui {
         });
     }
 
-    fn handle_keys(&mut self, ctx: &egui::Context) {
+    fn handle_keys(&mut self, ctx: &egui::Context) -> Vec<Events> {
+        let mut events = vec![];
         ctx.input_mut(|reader| {
             if reader.consume_shortcut(&self.config.exit_shortcut) {
                 self.exit = true;
             }
+
+            // arrows map to board resize
+            if reader.key_released(egui::Key::ArrowLeft) || reader.key_released(egui::Key::A) {
+                events.push(Events::DecreaseCol);
+            }
+            if reader.key_released(egui::Key::ArrowRight) || reader.key_released(egui::Key::D) {
+                events.push(Events::IncreaseCol);
+            }
+            if reader.key_released(egui::Key::ArrowUp) || reader.key_released(egui::Key::W) {
+                events.push(Events::DecreaseRow);
+            }
+            if reader.key_released(egui::Key::ArrowDown) {
+                // || reader.key_released(egui::Key::S) {
+                events.push(Events::IncreaseRow);
+            }
+
+            // r maps to reset
+            if reader.key_released(egui::Key::R) {
+                events.push(Events::Reset);
+            }
+
+            // s maps to mark solve
+            if reader.key_released(egui::Key::S) {
+                events.push(Events::Solve);
+            }
         });
+
+        events
     }
 }
 
@@ -158,25 +206,37 @@ impl eframe::App for LOSGui {
             self.exit = false;
         }
 
-        self.handle_keys(ctx);
-
-        let events = self.render(ctx);
+        let mut events = self.handle_keys(ctx);
+        events.extend(self.render(ctx));
 
         events.into_iter().for_each(|event| match event {
-            RenderEvents::IncreaseRow => {
-                self.resize_board(self.board.cols(), self.board.rows() + 1)
+            Events::IncreaseRow => {
+                if self.board.rows() < self.config.row_range.end {
+                    self.resize_board(self.board.cols(), self.board.rows() + 1)
+                }
             }
-            RenderEvents::DecreaseRow => {
-                self.resize_board(self.board.cols(), self.board.rows() - 1)
+            Events::DecreaseRow => {
+                if self.board.rows() > self.config.row_range.start {
+                    self.resize_board(self.board.cols(), self.board.rows() - 1)
+                }
             }
-            RenderEvents::IncreaseCol => {
-                self.resize_board(self.board.cols() + 1, self.board.rows())
+            Events::IncreaseCol => {
+                if self.board.cols() < self.config.col_range.end {
+                    self.resize_board(self.board.cols() + 1, self.board.rows())
+                }
             }
-            RenderEvents::DecreaseCol => {
-                self.resize_board(self.board.cols() - 1, self.board.rows())
+            Events::DecreaseCol => {
+                if self.board.cols() > self.config.col_range.start {
+                    self.resize_board(self.board.cols() - 1, self.board.rows())
+                }
             }
-            RenderEvents::TriggerCell(index) => {
+            Events::TriggerCell(index) => {
                 self.board.trigger_index(index);
+                self.solution.as_mut().map(|sol| sol.remove(&index));
+            }
+            Events::Reset => self.resize_board(self.board.cols(), self.board.rows()),
+            Events::Solve => {
+                self.solution = gf2::solve(self.board.as_ref()).map(|vec| HashSet::from_iter(vec));
             }
         });
     }

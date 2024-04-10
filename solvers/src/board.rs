@@ -71,13 +71,17 @@ impl Board for Binary {
         self.board.iter()
     }
 
-    fn get(&self, col: usize, row: usize) -> Option<usize> {
+    fn get(&self, col: usize, row: usize) -> BoardCell {
         if col < self.cols && row < self.rows {
             let index = self.get_index(col, row);
             Some(self.board[index])
         } else {
             None
         }
+    }
+
+    fn get_index(&self, col: usize, row: usize) -> usize {
+        row * self.cols + col
     }
 
     fn set(&mut self, col: usize, row: usize, value: usize) -> bool {
@@ -127,9 +131,5 @@ impl Board for Binary {
         switch(self, col + 1, row);
         switch(self, col, row + 1);
         self
-    }
-
-    fn get_index(&self, col: usize, row: usize) -> usize {
-        row * self.cols + col
     }
 }
