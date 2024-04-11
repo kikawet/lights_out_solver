@@ -61,6 +61,7 @@ impl LOSGui {
                     .unwrap_or_default()
             })
             .unwrap_or_default();
+        let loading = matches!(self.solution, Lazy::Requested);
 
         let color = match (marked, active) {
             (true, true) => egui::Color32::from_rgb(255, 165, 0), // Orange
@@ -71,34 +72,48 @@ impl LOSGui {
 
         let button = egui::Button::new("").fill(color);
 
-        ui.add_sized([self.config.cell_size, self.config.cell_size], button)
-            .highlight()
-            .on_hover_cursor(egui::CursorIcon::PointingHand)
+        ui.add_enabled_ui(!loading, |ui| {
+            ui.add_sized([self.config.cell_size, self.config.cell_size], button)
+                .highlight()
+                .on_hover_cursor(egui::CursorIcon::PointingHand)
+        })
+        .inner
     }
 
     fn draw_board(&mut self, ui: &mut egui::Ui) {
         let cell_space = 5.;
+        let spinner_scale = 0.8;
+        let loading = matches!(self.solution, Lazy::Requested);
 
-        egui::Grid::new("board")
+        dbg!(loading);
+
+        let board_rect = egui::Grid::new("board")
             .spacing([cell_space, cell_space])
             .show(ui, |ui| {
                 for row in 0..self.board.rows() {
                     for col in 0..self.board.cols() {
                         let cell = self.draw_cell(col, row, ui);
 
-                        if cell.clicked() {
+                        if cell.clicked() && !loading {
                             self.queue_event(Events::TriggerCell(self.board.get_index(col, row)));
                         }
                     }
                     ui.end_row();
                 }
-            });
-    }
+            })
+            .response
+            .rect;
 
-    fn resize_board(&mut self, new_cols: usize, new_rows: usize) {
-        // Replace with empty board bc otherwise may end up with impossible state
-        self.board = Box::new(Binary::new_blank(new_cols, new_rows));
-        self.solution = Lazy::Empty;
+        if loading {
+            let side_length = (board_rect.width() * spinner_scale)
+                .min(board_rect.height() * spinner_scale)
+                .min(200.);
+
+            let spinner_rect =
+                egui::Rect::from_center_size(board_rect.center(), egui::Vec2::splat(side_length));
+
+            egui::Spinner::new().paint_at(ui, spinner_rect);
+        }
     }
 
     fn render(&mut self, ctx: &egui::Context) {
@@ -130,6 +145,8 @@ impl LOSGui {
                         self.board.cols() < self.config.col_range.end,
                         || self.queue_event(Events::IncreaseCol),
                     );
+
+                    self.print_instructions(ui);
                 });
 
                 self.draw_control(
@@ -146,6 +163,10 @@ impl LOSGui {
                 );
             });
         });
+    }
+
+    fn print_instructions(&self, ui: &mut egui::Ui) {
+        ui.label("Normal label");
     }
 
     fn draw_control(
@@ -169,6 +190,12 @@ impl LOSGui {
                 clicked_action()
             }
         });
+    }
+
+    fn resize_board(&mut self, new_cols: usize, new_rows: usize) {
+        // Replace with empty board bc otherwise may end up with impossible state
+        self.board = Box::new(Binary::new_blank(new_cols, new_rows));
+        self.solution = Lazy::Empty;
     }
 
     fn handle_keys(&mut self, ctx: &egui::Context) {
@@ -208,7 +235,9 @@ impl LOSGui {
 
 impl eframe::App for LOSGui {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.handle_keys(ctx);
+        if !matches!(self.solution, Lazy::Requested) {
+            self.handle_keys(ctx);
+        }
         self.render(ctx);
 
         if let Ok(event) = self.rx.try_recv() {
