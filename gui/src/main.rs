@@ -7,6 +7,7 @@ use crate::gui::LOSGui;
 
 mod config;
 mod gui;
+mod lazy;
 
 fn main() {
     SimpleLogger::new()

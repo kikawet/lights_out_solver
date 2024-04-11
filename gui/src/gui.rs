@@ -11,18 +11,17 @@ use solvers::{
     gf2,
 };
 
-use crate::config::GuiConfig;
-
-type Solution = Option<HashSet<usize>>;
+use crate::{config::GuiConfig, lazy::Lazy};
 
 pub struct LOSGui {
     board: Box<Binary>,
-    exit: bool,
     config: GuiConfig,
-    solution: Solution, //TODO: solution may be requested but no solution may exists
+    solution: Lazy<Solution>,
     tx: Sender<Events>,
     rx: Receiver<Events>,
 }
+
+type Solution = Option<HashSet<usize>>;
 
 enum Events {
     IncreaseRow,
@@ -30,6 +29,7 @@ enum Events {
     IncreaseCol,
     DecreaseCol,
     TriggerCell(usize),
+    Exit,
     Reset,
     Solve,
     SolutionFound(Solution),
@@ -41,9 +41,8 @@ impl LOSGui {
 
         Self {
             board: Box::new(Binary::new_blank(5, 5)),
-            exit: false,
             config,
-            solution: None,
+            solution: Lazy::Empty,
             tx,
             rx,
         }
@@ -56,7 +55,10 @@ impl LOSGui {
             .as_ref()
             .map(|solution| {
                 let index = self.board.get_index(col, row);
-                solution.contains(&index)
+                solution
+                    .as_ref()
+                    .map(|s| s.contains(&index))
+                    .unwrap_or_default()
             })
             .unwrap_or_default();
 
@@ -94,8 +96,9 @@ impl LOSGui {
     }
 
     fn resize_board(&mut self, new_cols: usize, new_rows: usize) {
-        // Replace with empty board bc otherwise may end with impossible state
+        // Replace with empty board bc otherwise may end up with impossible state
         self.board = Box::new(Binary::new_blank(new_cols, new_rows));
+        self.solution = Lazy::Empty;
     }
 
     fn render(&mut self, ctx: &egui::Context) {
@@ -171,32 +174,29 @@ impl LOSGui {
     fn handle_keys(&mut self, ctx: &egui::Context) {
         ctx.input_mut(|reader| {
             if reader.consume_shortcut(&self.config.exit_shortcut) {
-                self.exit = true;
+                self.queue_event(Events::Exit);
             }
 
-            // arrows map to board resize
-            if reader.key_released(egui::Key::ArrowLeft) || reader.key_released(egui::Key::A) {
-                self.queue_event(Events::DecreaseCol);
-            }
-            if reader.key_released(egui::Key::ArrowRight) || reader.key_released(egui::Key::D) {
-                self.queue_event(Events::IncreaseCol);
-            }
-            if reader.key_released(egui::Key::ArrowUp) || reader.key_released(egui::Key::W) {
-                self.queue_event(Events::DecreaseRow);
-            }
-            if reader.key_released(egui::Key::ArrowDown) {
-                // || reader.key_released(egui::Key::S) {
-                self.queue_event(Events::IncreaseRow);
-            }
-
-            // r maps to reset
-            if reader.key_released(egui::Key::R) {
+            if reader.consume_shortcut(&self.config.reset_shortcut) {
                 self.queue_event(Events::Reset);
             }
 
-            // s maps to mark solve
-            if reader.key_released(egui::Key::S) {
+            if reader.consume_shortcut(&self.config.solve_shortcut) {
                 self.queue_event(Events::Solve);
+            }
+
+            // arrows map to board resize
+            if reader.key_pressed(egui::Key::ArrowLeft) || reader.key_pressed(egui::Key::A) {
+                self.queue_event(Events::DecreaseCol);
+            }
+            if reader.key_pressed(egui::Key::ArrowRight) || reader.key_pressed(egui::Key::D) {
+                self.queue_event(Events::IncreaseCol);
+            }
+            if reader.key_pressed(egui::Key::ArrowUp) || reader.key_pressed(egui::Key::W) {
+                self.queue_event(Events::DecreaseRow);
+            }
+            if reader.key_pressed(egui::Key::ArrowDown) || reader.key_pressed(egui::Key::S) {
+                self.queue_event(Events::IncreaseRow);
             }
         })
     }
@@ -208,12 +208,6 @@ impl LOSGui {
 
 impl eframe::App for LOSGui {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if self.exit {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-            debug!("Exiting requested");
-            self.exit = false;
-        }
-
         self.handle_keys(ctx);
         self.render(ctx);
 
@@ -241,20 +235,24 @@ impl eframe::App for LOSGui {
                 }
                 Events::TriggerCell(index) => {
                     self.board.trigger_index(index);
-                    self.solution.as_mut().map(|sol| sol.remove(&index));
+                    self.solution
+                        .as_mut()
+                        .map(|sol| sol.as_mut().map(|hash| hash.remove(&index)));
+                }
+                Events::Exit => {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    debug!("Exiting requested");
                 }
                 Events::Reset => {
                     self.resize_board(self.board.cols(), self.board.rows());
-                    self.solution = None;
                 }
                 Events::Solve => {
-                    self.solution =
-                        gf2::solve(self.board.as_ref()).map(|vec| HashSet::from_iter(vec));
                     let board = self.board.as_ref().to_owned();
+                    self.solution = Lazy::Requested;
                     calculate_solution(board, self.tx.clone(), ctx.clone());
                 }
                 Events::SolutionFound(solution) => {
-                    self.solution = solution;
+                    self.solution = Lazy::Completed(solution);
                 }
             }
         }
