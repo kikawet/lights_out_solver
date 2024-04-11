@@ -243,7 +243,10 @@ impl eframe::App for LOSGui {
                     self.board.trigger_index(index);
                     self.solution.as_mut().map(|sol| sol.remove(&index));
                 }
-                Events::Reset => self.resize_board(self.board.cols(), self.board.rows()),
+                Events::Reset => {
+                    self.resize_board(self.board.cols(), self.board.rows());
+                    self.solution = None;
+                }
                 Events::Solve => {
                     self.solution =
                         gf2::solve(self.board.as_ref()).map(|vec| HashSet::from_iter(vec));
