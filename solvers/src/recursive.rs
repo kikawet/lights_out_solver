@@ -1,8 +1,10 @@
+use crate::Solution;
+
 use super::board::{Binary, Board};
 
-pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
+pub fn solve(board: &dyn Board) -> Solution {
     let mut solution: Vec<usize> = vec![];
-    let mut best_solution: Option<Vec<usize>> = None;
+    let mut best_solution: Solution = None;
     let mut available_moves: Vec<bool> = vec![true; board.cols() * board.rows()];
 
     let mut board = Binary::new_from_values(
@@ -29,7 +31,7 @@ fn solve_recursive(
     board: &mut dyn Board,
     available_moves: &mut Vec<bool>,
     solution: &mut Vec<usize>,
-    best_solution: &mut Option<Vec<usize>>,
+    best_solution: &mut Solution,
 ) {
     let is_better_solution = match best_solution {
         Some(best) => is_solution_better(solution, best),

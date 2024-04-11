@@ -2,6 +2,9 @@ pub mod board;
 pub mod gf2;
 pub mod recursive;
 
+pub type Solution = Option<Vec<usize>>;
+pub type BoardCell = Option<usize>;
+
 #[cfg(test)]
 mod solver_tests {
     use crate::{

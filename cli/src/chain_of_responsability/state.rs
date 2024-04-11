@@ -1,11 +1,11 @@
-use solvers::board::Board;
+use solvers::{board::Board, Solution};
 
 use crate::args::CliArgs;
 
 pub struct State {
     pub args: CliArgs,
     pub board: Option<Box<dyn Board>>,
-    pub solution: Option<Vec<usize>>,
+    pub solution: Solution,
 }
 
 impl State {

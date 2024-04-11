@@ -1,6 +1,6 @@
 // Credit https://github.com/oovm/deus-rs/blob/master/src/solvers/state2.rs
 
-pub type BoardCell = Option<usize>;
+use crate::BoardCell;
 
 pub trait Board {
     fn size(&self) -> (usize, usize);
@@ -15,7 +15,7 @@ pub trait Board {
     fn iter(&self) -> std::slice::Iter<'_, usize>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Binary {
     cols: usize,
     rows: usize,
