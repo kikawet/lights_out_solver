@@ -1,24 +1,27 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+mod config;
+mod gui;
+mod lazy;
+
+#[macro_use]
+extern crate json_gettext;
+
 use config::GuiConfigBuilder;
 use simple_logger::SimpleLogger;
 
 use crate::gui::LOSGui;
 
-mod config;
-mod gui;
-mod lazy;
-
 fn main() {
-    SimpleLogger::new()
-        .with_level(log::LevelFilter::Debug)
-        .init()
-        .expect("Unable to start logger");
-
     //TODO: read config from env or file
     let config = GuiConfigBuilder::default()
         .build()
         .expect("Configuration must be valid");
+
+    SimpleLogger::new()
+        .with_level(log::LevelFilter::Debug) // TODO: read level filter value from config
+        .init()
+        .expect("Unable to start logger");
 
     let window_size = egui::ViewportBuilder::default()
         .inner_size
@@ -31,10 +34,12 @@ fn main() {
         ..Default::default()
     };
 
+    let gui = LOSGui::new(config);
+
     eframe::run_native(
-        "Lights Out Solver",
+        &gui.get_text("app.title"),
         options,
-        Box::new(|_cc| Box::new(LOSGui::new(config))),
+        Box::new(|_cc| Box::new(gui)),
     )
     .expect("Error creating window");
 }

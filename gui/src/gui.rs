@@ -5,7 +5,7 @@ use std::{
 };
 
 use eframe::egui;
-use log::debug;
+use log::{debug, warn};
 use solvers::{
     board::{Binary, Board},
     gf2,
@@ -19,6 +19,7 @@ pub struct LOSGui {
     solution: Lazy<Solution>,
     tx: Sender<Events>,
     rx: Receiver<Events>,
+    language: String,
 }
 
 type Solution = Option<HashSet<usize>>;
@@ -40,6 +41,7 @@ impl LOSGui {
         let (tx, rx) = std::sync::mpsc::channel();
 
         Self {
+            language: config.initial_language.to_string(),
             board: Box::new(Binary::new_blank(config.initial_cols, config.initial_rows)),
             config,
             solution: Lazy::Empty,
@@ -125,13 +127,13 @@ impl LOSGui {
 
                             self.draw_control(
                                 ui,
-                                "⏴",
+                                self.get_text("control.left"),
                                 self.board.cols() > self.config.col_range.start,
                                 || self.queue_event(Events::DecreaseCol),
                             );
                             self.draw_control(
                                 ui,
-                                "⏵",
+                                self.get_text("control.right"),
                                 self.board.cols() < self.config.col_range.end,
                                 || self.queue_event(Events::IncreaseCol),
                             );
@@ -139,13 +141,13 @@ impl LOSGui {
 
                         self.draw_control(
                             ui,
-                            "⏶",
+                            self.get_text("control.up"),
                             self.board.rows() > self.config.row_range.start,
                             || self.queue_event(Events::DecreaseRow),
                         );
                         self.draw_control(
                             ui,
-                            "⏷",
+                            self.get_text("control.down"),
                             self.board.rows() < self.config.row_range.end,
                             || self.queue_event(Events::IncreaseRow),
                         );
@@ -165,10 +167,10 @@ impl LOSGui {
             ui.style_mut().wrap = Some(false);
             ui.spacing_mut().item_spacing = egui::Vec2::splat(self.config.text_size);
 
-            ui.collapsing(self.text("Goal"), |ui| {
+            ui.collapsing(self.text("instructions.goal.header"), |ui| {
                 ui.style_mut().wrap = Some(true);
                 let description = egui::text::LayoutJob::single_section(
-                    DESCRIPTION.to_owned(),
+                    self.get_text("instructions.goal.description"),
                     egui::TextFormat {
                         font_id: egui::FontId::proportional(self.config.text_size),
                         ..Default::default()
@@ -179,7 +181,7 @@ impl LOSGui {
                 ui.label(description);
             });
 
-            ui.collapsing(self.text("Controls"), |ui| {
+            ui.collapsing(self.text("instructions.shortcuts.header"), |ui| {
                 ui.horizontal(|ui| {
                     ui.code(
                         self.text(
@@ -188,8 +190,9 @@ impl LOSGui {
                                 .format(&egui::ModifierNames::NAMES, is_mac),
                         ),
                     );
-                    self.label(ui, ": Solve");
+                    self.label(ui, "instructions.shortcuts.description.solve");
                 });
+
                 ui.horizontal(|ui| {
                     ui.code(
                         self.text(
@@ -198,8 +201,9 @@ impl LOSGui {
                                 .format(&egui::ModifierNames::NAMES, is_mac),
                         ),
                     );
-                    self.label(ui, ": Reset");
+                    self.label(ui, "instructions.shortcuts.description.reset");
                 });
+
                 ui.horizontal(|ui| {
                     ui.code(
                         self.text(
@@ -208,37 +212,45 @@ impl LOSGui {
                                 .format(&egui::ModifierNames::NAMES, is_mac),
                         ),
                     );
-                    self.label(ui, ": Exit");
+                    self.label(ui, "instructions.shortcuts.description.exit");
                 });
             });
 
-            ui.collapsing(self.text("State"), |ui| {
+            ui.collapsing(self.text("instructions.states.header"), |ui| {
                 ui.horizontal(|ui| {
-                    self.draw_cell_base(ui, true, true) | self.label(ui, "Marked & Active")
+                    self.draw_cell_base(ui, true, true)
+                        | self.label(ui, "instructions.states.mixed.name")
                 })
                 .inner
                 .on_hover_ui(|ui| {
-                    self.label(ui, "This tiles are marked and active at the same time");
+                    self.label(ui, "instructions.states.mixed.tooltip");
                 });
-                ui.horizontal(|ui| self.draw_cell_base(ui, true, false) | self.label(ui, "Marked"))
-                    .inner
-                    .on_hover_ui(|ui| {
-                        self.label(ui, "Click all this tiles to solve the board");
-                    });
-                ui.horizontal(|ui| self.draw_cell_base(ui, false, true) | self.label(ui, "Active"))
-                    .inner
-                    .on_hover_ui(|ui| {
-                        self.label(ui, "Activate tiles by directly clicking or by nearby cells");
-                    });
+
                 ui.horizontal(|ui| {
-                    self.draw_cell_base(ui, false, false) | self.label(ui, "Initial")
+                    self.draw_cell_base(ui, true, false)
+                        | self.label(ui, "instructions.states.marked.name")
+                })
+                .inner
+                .on_hover_ui(|ui| {
+                    self.label(ui, "instructions.states.marked.tooltip");
+                });
+
+                ui.horizontal(|ui| {
+                    self.draw_cell_base(ui, false, true)
+                        | self.label(ui, "instructions.states.active.name")
+                })
+                .inner
+                .on_hover_ui(|ui| {
+                    self.label(ui, "instructions.states.active.tooltip");
+                });
+
+                ui.horizontal(|ui| {
+                    self.draw_cell_base(ui, false, false)
+                        | self.label(ui, "instructions.states.default.name")
                 })
                 .inner
                 .on_hover_ui_at_pointer(|ui| {
-                    self.label(
-                        ui,
-                        "Default state of the cells you can toggle from active to this state",
-                    );
+                    self.label(ui, "instructions.states.default.tooltip");
                 });
             })
         });
@@ -326,12 +338,32 @@ impl LOSGui {
         let _ = self.tx.send(event);
     }
 
-    fn text(&self, text: impl Into<String>) -> egui::RichText {
-        egui::RichText::new(text).font(egui::FontId::proportional(self.config.text_size))
+    fn text(&self, translation_key: impl Into<String>) -> egui::RichText {
+        egui::RichText::new(self.get_text(translation_key))
+            .font(egui::FontId::proportional(self.config.text_size))
     }
 
-    fn label(&self, ui: &mut egui::Ui, text: impl Into<String>) -> egui::Response {
-        ui.label(self.text(text))
+    fn label(&self, ui: &mut egui::Ui, translation_key: impl Into<String>) -> egui::Response {
+        ui.label(self.text(translation_key))
+    }
+
+    pub fn get_text(&self, translation_key: impl Into<String>) -> String {
+        if !self.config.tranlation_ctx.contains_key(&self.language) {
+            warn!(
+                "Language {} not loaded, using default translation",
+                &self.language
+            );
+        }
+
+        let key = translation_key.into();
+        self.config
+            .tranlation_ctx
+            .get_text_with_key(&self.language, &key)
+            .map(|val| val.to_string())
+            .unwrap_or_else(|| {
+                warn!("Translation with key {} not found", key);
+                key
+            })
     }
 }
 
@@ -397,5 +429,3 @@ fn calculate_solution(board: Binary, tx: Sender<Events>, ctx: egui::Context) {
         ctx.request_repaint();
     });
 }
-
-const DESCRIPTION: &str = "\"Lights Out Puzzle\" is a classic puzzle game where the goal is to activate all the cells on a board.\n\nToggling the state of one light affects its neighbors.";

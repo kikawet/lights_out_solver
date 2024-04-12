@@ -9,6 +9,7 @@ default-run = "los-gui"
 derive_builder = "0.20.0"
 eframe = { version = "0.27.2" }
 egui = "0.27.2"
+json-gettext = "4.0.10"
 log = "0.4.21"
 simple_logger = "4.3.3"
 solvers = { path = "../solvers" }
