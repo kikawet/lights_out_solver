@@ -1,10 +1,34 @@
+///
+/// Enum to manage state of defered computed values
+///
+/// This enum should be used while waiting for async results,
+/// consider Option if just Empty and Completed states are required
+///
+/// This Enum is not a future and state is meant to be updated
+/// by manually no dependency graph should be assumed.
+///
 pub enum Lazy<T> {
+    /// Starting value
     Empty,
+    /// Resource is being computed asynchronously
     Requested,
+    /// Resource computation completed, you can use now the result
     Completed(T),
 }
 
+impl<T> Default for Lazy<T> {
+    /// Get [Lazy::Empty]
+    fn default() -> Self {
+        Lazy::Empty
+    }
+}
+
 impl<T> Lazy<T> {
+    /// Throw away state and revert to default
+    pub fn discard(&mut self) {
+        *self = Lazy::default()
+    }
+
     #[inline]
     pub const fn as_ref(&self) -> Lazy<&T> {
         match *self {

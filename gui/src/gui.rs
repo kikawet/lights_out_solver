@@ -44,7 +44,7 @@ impl LOSGui {
             language: config.initial_language.to_string(),
             board: Box::new(Binary::new_blank(config.initial_cols, config.initial_rows)),
             config,
-            solution: Lazy::Empty,
+            solution: Lazy::default(),
             tx,
             rx,
         }
@@ -301,7 +301,7 @@ impl LOSGui {
     fn resize_board(&mut self, new_cols: usize, new_rows: usize) {
         // Replace with empty board bc otherwise may end up with impossible state
         self.board = Box::new(Binary::new_blank(new_cols, new_rows));
-        self.solution = Lazy::Empty;
+        self.solution.discard();
     }
 
     fn handle_keys(&mut self, ctx: &egui::Context) {
