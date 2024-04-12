@@ -16,7 +16,9 @@ fn main() {
         .expect("Unable to start logger");
 
     //TODO: read config from env or file
-    let config = GuiConfigBuilder::new().build();
+    let config = GuiConfigBuilder::default()
+        .build()
+        .expect("Configuration must be valid");
 
     let window_size = egui::ViewportBuilder::default()
         .inner_size
