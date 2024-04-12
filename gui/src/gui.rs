@@ -40,7 +40,7 @@ impl LOSGui {
         let (tx, rx) = std::sync::mpsc::channel();
 
         Self {
-            board: Box::new(Binary::new_blank(5, 5)),
+            board: Box::new(Binary::new_blank(config.initial_cols, config.initial_rows)),
             config,
             solution: Lazy::Empty,
             tx,
@@ -63,18 +63,8 @@ impl LOSGui {
             .unwrap_or_default();
         let loading = matches!(self.solution, Lazy::Requested);
 
-        let color = match (marked, active) {
-            (true, true) => egui::Color32::from_rgb(255, 165, 0), // Orange
-            (true, false) => egui::Color32::GOLD,
-            (false, true) => egui::Color32::RED,
-            (false, false) => egui::Color32::DARK_GRAY,
-        };
-
-        let button = egui::Button::new("").fill(color);
-
         ui.add_enabled_ui(!loading, |ui| {
-            ui.add_sized([self.config.cell_size, self.config.cell_size], button)
-                .highlight()
+            self.draw_cell_base(ui, marked, active)
                 .on_hover_cursor(egui::CursorIcon::PointingHand)
         })
         .inner
@@ -84,8 +74,6 @@ impl LOSGui {
         let cell_space = 5.;
         let spinner_scale = 0.8;
         let loading = matches!(self.solution, Lazy::Requested);
-
-        dbg!(loading);
 
         let board_rect = egui::Grid::new("board")
             .spacing([cell_space, cell_space])
@@ -131,42 +119,129 @@ impl LOSGui {
 
             egui::ScrollArea::both().show(ui, |ui| {
                 ui.horizontal_top(|ui| {
-                    self.draw_board(ui);
+                    ui.vertical(|ui| {
+                        ui.horizontal_top(|ui| {
+                            self.draw_board(ui);
 
-                    self.draw_control(
-                        ui,
-                        "⏴",
-                        self.board.cols() > self.config.col_range.start,
-                        || self.queue_event(Events::DecreaseCol),
-                    );
-                    self.draw_control(
-                        ui,
-                        "⏵",
-                        self.board.cols() < self.config.col_range.end,
-                        || self.queue_event(Events::IncreaseCol),
-                    );
+                            self.draw_control(
+                                ui,
+                                "⏴",
+                                self.board.cols() > self.config.col_range.start,
+                                || self.queue_event(Events::DecreaseCol),
+                            );
+                            self.draw_control(
+                                ui,
+                                "⏵",
+                                self.board.cols() < self.config.col_range.end,
+                                || self.queue_event(Events::IncreaseCol),
+                            );
+                        });
 
-                    self.print_instructions(ui);
+                        self.draw_control(
+                            ui,
+                            "⏶",
+                            self.board.rows() > self.config.row_range.start,
+                            || self.queue_event(Events::DecreaseRow),
+                        );
+                        self.draw_control(
+                            ui,
+                            "⏷",
+                            self.board.rows() < self.config.row_range.end,
+                            || self.queue_event(Events::IncreaseRow),
+                        );
+                    });
+
+                    ui.add_space(self.config.text_size);
+                    self.print_instructions(ui, ctx);
                 });
-
-                self.draw_control(
-                    ui,
-                    "⏶",
-                    self.board.rows() > self.config.row_range.start,
-                    || self.queue_event(Events::DecreaseRow),
-                );
-                self.draw_control(
-                    ui,
-                    "⏷",
-                    self.board.rows() < self.config.row_range.end,
-                    || self.queue_event(Events::IncreaseRow),
-                );
             });
         });
     }
 
-    fn print_instructions(&self, ui: &mut egui::Ui) {
-        ui.label("Normal label");
+    fn print_instructions(&self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        let is_mac = !matches!(ctx.os(), egui::os::OperatingSystem::Mac);
+
+        ui.vertical(|ui| {
+            ui.style_mut().wrap = Some(false);
+            ui.spacing_mut().item_spacing = egui::Vec2::splat(self.config.text_size);
+
+            ui.collapsing(self.text("Goal"), |ui| {
+                ui.style_mut().wrap = Some(true);
+                let description = egui::text::LayoutJob::single_section(
+                    DESCRIPTION.to_owned(),
+                    egui::TextFormat {
+                        font_id: egui::FontId::proportional(self.config.text_size),
+                        ..Default::default()
+                    },
+                );
+
+                // NOTE: `Label` overrides some of the wrapping settings, e.g. wrap width
+                ui.label(description);
+            });
+
+            ui.collapsing(self.text("Controls"), |ui| {
+                ui.horizontal(|ui| {
+                    ui.code(
+                        self.text(
+                            self.config
+                                .solve_shortcut
+                                .format(&egui::ModifierNames::NAMES, is_mac),
+                        ),
+                    );
+                    self.label(ui, ": Solve");
+                });
+                ui.horizontal(|ui| {
+                    ui.code(
+                        self.text(
+                            self.config
+                                .reset_shortcut
+                                .format(&egui::ModifierNames::NAMES, is_mac),
+                        ),
+                    );
+                    self.label(ui, ": Reset");
+                });
+                ui.horizontal(|ui| {
+                    ui.code(
+                        self.text(
+                            self.config
+                                .exit_shortcut
+                                .format(&egui::ModifierNames::NAMES, is_mac),
+                        ),
+                    );
+                    self.label(ui, ": Exit");
+                });
+            });
+
+            ui.collapsing(self.text("State"), |ui| {
+                ui.horizontal(|ui| {
+                    self.draw_cell_base(ui, true, true) | self.label(ui, "Marked & Active")
+                })
+                .inner
+                .on_hover_ui(|ui| {
+                    self.label(ui, "This tiles are marked and active at the same time");
+                });
+                ui.horizontal(|ui| self.draw_cell_base(ui, true, false) | self.label(ui, "Marked"))
+                    .inner
+                    .on_hover_ui(|ui| {
+                        self.label(ui, "Click all this tiles to solve the board");
+                    });
+                ui.horizontal(|ui| self.draw_cell_base(ui, false, true) | self.label(ui, "Active"))
+                    .inner
+                    .on_hover_ui(|ui| {
+                        self.label(ui, "Activate tiles by directly clicking or by nearby cells");
+                    });
+                ui.horizontal(|ui| {
+                    self.draw_cell_base(ui, false, false) | self.label(ui, "Initial")
+                })
+                .inner
+                .on_hover_ui_at_pointer(|ui| {
+                    self.label(
+                        ui,
+                        "Default state of the cells you can toggle from active to this state",
+                    );
+                });
+            })
+        });
     }
 
     fn draw_control(
@@ -190,6 +265,25 @@ impl LOSGui {
                 clicked_action()
             }
         });
+    }
+
+    ///
+    /// Draw into [egui::Ui] the basic state of a button
+    ///
+    /// Color will be set based on marked (is part of the solution) and active (is triggered)
+    ///
+    fn draw_cell_base(&self, ui: &mut egui::Ui, marked: bool, active: bool) -> egui::Response {
+        let color = match (marked, active) {
+            (true, true) => egui::Color32::from_rgb(255, 165, 0), // Orange
+            (true, false) => egui::Color32::GOLD,
+            (false, true) => egui::Color32::RED,
+            (false, false) => egui::Color32::DARK_GRAY,
+        };
+
+        let button = egui::Button::new("").fill(color);
+
+        ui.add_sized([self.config.cell_size, self.config.cell_size], button)
+            .highlight()
     }
 
     fn resize_board(&mut self, new_cols: usize, new_rows: usize) {
@@ -230,6 +324,14 @@ impl LOSGui {
 
     fn queue_event(&self, event: Events) {
         let _ = self.tx.send(event);
+    }
+
+    fn text(&self, text: impl Into<String>) -> egui::RichText {
+        egui::RichText::new(text).font(egui::FontId::proportional(self.config.text_size))
+    }
+
+    fn label(&self, ui: &mut egui::Ui, text: impl Into<String>) -> egui::Response {
+        ui.label(self.text(text))
     }
 }
 
@@ -295,3 +397,5 @@ fn calculate_solution(board: Binary, tx: Sender<Events>, ctx: egui::Context) {
         ctx.request_repaint();
     });
 }
+
+const DESCRIPTION: &str = "\"Lights Out Puzzle\" is a classic puzzle game where the goal is to activate all the cells on a board.\n\nToggling the state of one light affects its neighbors.";

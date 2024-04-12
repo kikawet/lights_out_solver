@@ -21,10 +21,11 @@ fn main() {
     let window_size = egui::ViewportBuilder::default()
         .inner_size
         .map(|size| size.x.max(size.y))
-        .unwrap_or(720.);
+        .map(|size| egui::Vec2::splat(size))
+        .unwrap_or(egui::Vec2::new(1280., 720.));
 
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([window_size, window_size]),
+        viewport: egui::ViewportBuilder::default().with_inner_size(window_size),
         ..Default::default()
     };
 
