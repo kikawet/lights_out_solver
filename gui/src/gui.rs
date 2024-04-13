@@ -348,6 +348,7 @@ impl LOSGui {
     }
 
     pub fn get_text(&self, translation_key: impl Into<String>) -> String {
+        //TODO: may be worth add cache
         if !self.config.tranlation_ctx.contains_key(&self.language) {
             warn!(
                 "Language {} not loaded, using default translation",
