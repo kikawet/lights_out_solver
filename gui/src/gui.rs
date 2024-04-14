@@ -15,7 +15,7 @@ use crate::{config::GuiConfig, lazy::Lazy};
 
 pub struct LOSGui {
     board: Box<Binary>,
-    config: GuiConfig,
+    config: GuiConfig<'static>, //TODO: it may be worth to remove this lifetime or remove the static
     solution: Lazy<Solution>,
     tx: Sender<Events>,
     rx: Receiver<Events>,
@@ -37,7 +37,7 @@ enum Events {
 }
 
 impl LOSGui {
-    pub fn new(config: GuiConfig) -> Self {
+    pub fn new(config: GuiConfig<'static>) -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
 
         Self {

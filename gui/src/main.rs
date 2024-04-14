@@ -7,14 +7,17 @@ mod lazy;
 #[macro_use]
 extern crate json_gettext;
 
-use config::GuiConfigBuilder;
 use simple_logger::SimpleLogger;
 
 use crate::gui::LOSGui;
 
 fn main() {
-    //TODO: read config from env or file
-    let config = GuiConfigBuilder::default()
+    let config = ::config::Config::builder()
+        .add_source(::config::Environment::with_prefix("LOS"))
+        .build()
+        .expect("Unable to load config from extenal sources")
+        .try_deserialize::<config::GuiConfigBuilder>()
+        .expect("Unable to deserialize GUI Config")
         .build()
         .expect("Configuration must be valid");
 
