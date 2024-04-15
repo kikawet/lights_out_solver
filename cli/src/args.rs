@@ -8,7 +8,7 @@ use clap::{Parser, ValueEnum};
     long_about = "CLI program created in Rust to solve Lights out puzzle. It finds the minimal solution and you as well run in simulation mode to check that the board is going to look after a number of steps",
     next_line_help = false
 )]
-pub struct CliArgs {
+pub struct Args {
     /// Indexes of the active lights
     ///
     /// Range from 1 to [cols]*[rows]
@@ -74,7 +74,7 @@ mod args_tests {
     use clap::CommandFactory;
     use clap::Parser;
 
-    use super::CliArgs;
+    use super::Args;
 
     macro_rules! test_args {
         ($($arg:expr),*) => {
@@ -84,17 +84,17 @@ mod args_tests {
 
     #[test]
     fn verify_clap() {
-        CliArgs::command().debug_assert();
+        Args::command().debug_assert();
     }
 
     #[test]
     fn test_name() {
-        assert_eq!(CliArgs::command().get_name(), "Lights Out Puzzle Solver");
+        assert_eq!(Args::command().get_name(), "Lights Out Puzzle Solver");
     }
 
     #[test]
     fn test_input_lights() {
-        let input = CliArgs::try_parse_from(test_args!("7", "9", "1", "3"))
+        let input = Args::try_parse_from(test_args!("7", "9", "1", "3"))
             .expect("ligths are not parsed properly");
 
         assert_eq!(input.lights, vec![7, 9, 1, 3]);
@@ -102,7 +102,7 @@ mod args_tests {
 
     #[test]
     fn test_defaults() {
-        let input = CliArgs::try_parse_from(test_args!()).expect("ligths are not parsed properly");
+        let input = Args::try_parse_from(test_args!()).expect("ligths are not parsed properly");
 
         assert_eq!(input.lights.len(), 0);
         assert_eq!(input.cols, 3);

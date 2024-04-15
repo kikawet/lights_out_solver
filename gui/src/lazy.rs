@@ -17,7 +17,7 @@ pub enum Lazy<T> {
 }
 
 impl<T> Default for Lazy<T> {
-    /// Get [Lazy::Empty]
+    /// Get [`Lazy::Empty`]
     fn default() -> Self {
         Lazy::Empty
     }
@@ -26,7 +26,7 @@ impl<T> Default for Lazy<T> {
 impl<T> Lazy<T> {
     /// Throw away state and revert to default
     pub fn discard(&mut self) {
-        *self = Lazy::default()
+        *self = Lazy::default();
     }
 
     #[inline]

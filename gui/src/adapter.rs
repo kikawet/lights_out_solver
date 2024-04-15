@@ -9,7 +9,7 @@ use serde::{
 };
 
 #[derive(Debug)]
-pub struct AdapterDeserializer<'a, F, I>
+pub struct Adapter<'a, F, I>
 where
     F: TryInto<I, Error = DeserializeError<'a>> + Deserialize<'a>,
 {
@@ -23,7 +23,7 @@ pub enum DeserializeError<'a> {
     Custom(String),
 }
 
-impl<'de, F, I> Deserialize<'de> for AdapterDeserializer<'de, F, I>
+impl<'de, F, I> Deserialize<'de> for Adapter<'de, F, I>
 where
     F: TryInto<I, Error = DeserializeError<'de>> + Deserialize<'de>,
 {
@@ -47,14 +47,14 @@ where
         let from = F::deserialize(deserializer)?;
         let into: I = from.try_into().map_err(map_deserialize_error::<D>)?;
 
-        Ok(AdapterDeserializer {
+        Ok(Adapter {
             inner: into,
             phantom: PhantomData,
         })
     }
 }
 
-impl<'a, F, I> PartialEq<I> for AdapterDeserializer<'a, F, I>
+impl<'a, F, I> PartialEq<I> for Adapter<'a, F, I>
 where
     F: TryInto<I, Error = DeserializeError<'a>> + Deserialize<'a>,
     I: PartialEq,
@@ -64,7 +64,7 @@ where
     }
 }
 
-impl<'a, F, I> Deref for AdapterDeserializer<'a, F, I>
+impl<'a, F, I> Deref for Adapter<'a, F, I>
 where
     F: TryInto<I, Error = DeserializeError<'a>> + Deserialize<'a>,
 {
@@ -75,7 +75,7 @@ where
     }
 }
 
-impl<'a, F, I> DerefMut for AdapterDeserializer<'a, F, I>
+impl<'a, F, I> DerefMut for Adapter<'a, F, I>
 where
     F: TryInto<I, Error = DeserializeError<'a>> + Deserialize<'a>,
 {
@@ -84,7 +84,7 @@ where
     }
 }
 
-impl<'a, F, I> From<I> for AdapterDeserializer<'a, F, I>
+impl<'a, F, I> From<I> for Adapter<'a, F, I>
 where
     F: TryInto<I, Error = DeserializeError<'a>> + Deserialize<'a>,
 {
@@ -100,7 +100,7 @@ where
 mod adapter_tests {
     use serde::Deserialize;
 
-    use super::{AdapterDeserializer, DeserializeError};
+    use super::{Adapter, DeserializeError};
 
     #[derive(Debug, PartialEq)]
     struct NonDeserialize(u8);
@@ -129,7 +129,7 @@ mod adapter_tests {
     #[derive(Debug, Deserialize)]
     struct TestAdapter {
         #[serde(borrow)]
-        non: AdapterDeserializer<'static, Deserializable, NonDeserialize>,
+        non: Adapter<'static, Deserializable, NonDeserialize>,
         yes: Deserializable,
     }
 
@@ -145,7 +145,7 @@ mod adapter_tests {
     #[test]
     fn test_deref_adapter() {
         let content = 70;
-        let adapter: AdapterDeserializer<Deserializable, _> = NonDeserialize(content).into();
+        let adapter: Adapter<Deserializable, _> = NonDeserialize(content).into();
 
         assert_eq!(adapter.get_content(), content);
     }
@@ -153,7 +153,7 @@ mod adapter_tests {
     #[test]
     fn test_derefmut_adapter() {
         let content = 69;
-        let mut adapter: AdapterDeserializer<Deserializable, _> = NonDeserialize(content).into();
+        let mut adapter: Adapter<Deserializable, _> = NonDeserialize(content).into();
         assert_eq!(adapter.get_content(), content);
         *adapter.mut_content() = 1;
         assert_eq!(adapter.get_content(), 1);

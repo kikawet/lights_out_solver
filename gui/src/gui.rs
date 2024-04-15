@@ -1,3 +1,5 @@
+pub mod config;
+
 use std::{
     collections::HashSet,
     sync::mpsc::{Receiver, Sender},
@@ -11,11 +13,13 @@ use solvers::{
     gf2,
 };
 
-use crate::{config::GuiConfig, lazy::Lazy};
+use crate::lazy::Lazy;
 
-pub struct LOSGui {
+use self::config::Config;
+
+pub struct Gui {
     board: Box<Binary>,
-    config: GuiConfig,
+    config: Config,
     solution: Lazy<Solution>,
     tx: Sender<Events>,
     rx: Receiver<Events>,
@@ -36,8 +40,8 @@ enum Events {
     SolutionFound(Solution),
 }
 
-impl LOSGui {
-    pub fn new(config: GuiConfig) -> Self {
+impl Gui {
+    pub fn new(config: Config) -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
 
         Self {
@@ -57,10 +61,7 @@ impl LOSGui {
             .as_ref()
             .map(|solution| {
                 let index = self.board.get_index(col, row);
-                solution
-                    .as_ref()
-                    .map(|s| s.contains(&index))
-                    .unwrap_or_default()
+                solution.as_ref().is_some_and(|s| s.contains(&index))
             })
             .unwrap_or_default();
         let loading = matches!(self.solution, Lazy::Requested);
@@ -108,12 +109,8 @@ impl LOSGui {
 
     fn render(&mut self, ctx: &egui::Context) {
         let style = ctx.style();
-        let mut frame = egui::Frame::window(&style)
+        let frame = egui::Frame::window(&style)
             .inner_margin(egui::Margin::same(self.config.cell_size / 2.));
-
-        if ctx.debug_on_hover() {
-            frame = frame.fill(egui::Color32::RED);
-        }
 
         egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
             let window_margin = ui.spacing().window_margin;
@@ -274,13 +271,13 @@ impl LOSGui {
                 .clicked();
 
             if clicked {
-                clicked_action()
+                clicked_action();
             }
         });
     }
 
     ///
-    /// Draw into [egui::Ui] the basic state of a button
+    /// Draw into [`egui::Ui`] the basic state of a button
     ///
     /// Color will be set based on marked (is part of the solution) and active (is triggered)
     ///
@@ -331,7 +328,7 @@ impl LOSGui {
             if reader.key_pressed(egui::Key::ArrowDown) || reader.key_pressed(egui::Key::S) {
                 self.queue_event(Events::IncreaseRow);
             }
-        })
+        });
     }
 
     fn queue_event(&self, event: Events) {
@@ -360,15 +357,17 @@ impl LOSGui {
         self.config
             .tranlation_ctx
             .get_text_with_key(&self.language, &key)
-            .map(|val| val.to_string())
-            .unwrap_or_else(|| {
-                warn!("Translation with key {} not found", key);
-                key
-            })
+            .map_or_else(
+                || {
+                    warn!("Translation with key {} not found", key);
+                    key
+                },
+                |val| val.to_string(),
+            )
     }
 }
 
-impl eframe::App for LOSGui {
+impl eframe::App for Gui {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if !matches!(self.solution, Lazy::Requested) {
             self.handle_keys(ctx);
@@ -379,22 +378,22 @@ impl eframe::App for LOSGui {
             match event {
                 Events::IncreaseRow => {
                     if self.board.rows() < self.config.row_range.end {
-                        self.resize_board(self.board.cols(), self.board.rows() + 1)
+                        self.resize_board(self.board.cols(), self.board.rows() + 1);
                     }
                 }
                 Events::DecreaseRow => {
                     if self.board.rows() > self.config.row_range.start {
-                        self.resize_board(self.board.cols(), self.board.rows() - 1)
+                        self.resize_board(self.board.cols(), self.board.rows() - 1);
                     }
                 }
                 Events::IncreaseCol => {
                     if self.board.cols() < self.config.col_range.end {
-                        self.resize_board(self.board.cols() + 1, self.board.rows())
+                        self.resize_board(self.board.cols() + 1, self.board.rows());
                     }
                 }
                 Events::DecreaseCol => {
                     if self.board.cols() > self.config.col_range.start {
-                        self.resize_board(self.board.cols() - 1, self.board.rows())
+                        self.resize_board(self.board.cols() - 1, self.board.rows());
                     }
                 }
                 Events::TriggerCell(index) => {
@@ -425,7 +424,7 @@ impl eframe::App for LOSGui {
 
 fn calculate_solution(board: Binary, tx: Sender<Events>, ctx: egui::Context) {
     thread::spawn(move || {
-        let solution = gf2::solve(&board).map(|vec| HashSet::from_iter(vec));
+        let solution = gf2::solve(&board).map(HashSet::from_iter);
         let _ = tx.send(Events::SolutionFound(solution));
         ctx.request_repaint();
     });

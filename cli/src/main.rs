@@ -1,7 +1,7 @@
 mod args;
 mod chain_of_responsability;
 
-use args::CliArgs;
+use args::Args;
 use chain_of_responsability::{
     chainable::Chainable,
     implementations::{
@@ -18,7 +18,7 @@ use log::info;
 use simple_logger::SimpleLogger;
 
 fn main() {
-    let input = CliArgs::parse();
+    let input = Args::parse();
     set_up_logger(&input);
 
     let mut worker = get_worker_chain(&input);
@@ -29,7 +29,7 @@ fn main() {
     }
 }
 
-fn get_worker_chain(args: &CliArgs) -> Box<dyn Worker> {
+fn get_worker_chain(args: &Args) -> Box<dyn Worker> {
     let mut validator = Box::<ValidateRangeWorker>::default();
     let sanitizer = Box::<SanitizeWorker>::default();
 
@@ -47,7 +47,7 @@ fn get_worker_chain(args: &CliArgs) -> Box<dyn Worker> {
     validator
 }
 
-fn set_up_logger(args: &CliArgs) {
+fn set_up_logger(args: &Args) {
     if args.verbose {
         SimpleLogger::new()
             .with_level(log::LevelFilter::Debug)

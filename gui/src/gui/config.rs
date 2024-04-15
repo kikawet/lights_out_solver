@@ -5,7 +5,7 @@ use json_gettext::{JSONGetText, JSONGetTextBuilder};
 
 use serde::{de::Unexpected, Deserialize};
 
-use crate::adapter::{AdapterDeserializer, DeserializeError};
+use crate::adapter::{Adapter, DeserializeError};
 
 #[derive(Debug, Builder)]
 #[builder(
@@ -15,23 +15,23 @@ use crate::adapter::{AdapterDeserializer, DeserializeError};
     pattern = "owned",
     derive(Deserialize)
 )]
-pub struct GuiConfig {
+pub struct Config {
     pub cell_size: f32,
     pub text_size: f32,
     pub initial_rows: usize,
     pub initial_cols: usize,
     pub row_range: Range<usize>,
     pub col_range: Range<usize>,
-    pub exit_shortcut: AdapterDeserializer<'static, KeyboardShortcut, egui::KeyboardShortcut>,
-    pub reset_shortcut: AdapterDeserializer<'static, KeyboardShortcut, egui::KeyboardShortcut>,
-    pub solve_shortcut: AdapterDeserializer<'static, KeyboardShortcut, egui::KeyboardShortcut>,
+    pub exit_shortcut: Adapter<'static, KeyboardShortcut, egui::KeyboardShortcut>,
+    pub reset_shortcut: Adapter<'static, KeyboardShortcut, egui::KeyboardShortcut>,
+    pub solve_shortcut: Adapter<'static, KeyboardShortcut, egui::KeyboardShortcut>,
     #[builder_field_attr(serde(borrow))]
-    pub tranlation_ctx: AdapterDeserializer<'static, TranslationCtx, JSONGetText<'static>>,
+    pub tranlation_ctx: Adapter<'static, TranslationCtx, JSONGetText<'static>>,
     pub initial_language: String,
-    pub log_level: AdapterDeserializer<'static, LevelFilter, log::LevelFilter>,
+    pub log_level: Adapter<'static, LevelFilter, log::LevelFilter>,
 }
 
-impl Default for GuiConfig {
+impl Default for Config {
     fn default() -> Self {
         Self {
             cell_size: 50.,
@@ -58,7 +58,7 @@ impl Default for GuiConfig {
     }
 }
 
-impl PartialEq for GuiConfig {
+impl PartialEq for Config {
     fn eq(&self, other: &Self) -> bool {
         self.cell_size == other.cell_size
             && self.text_size == other.text_size
@@ -75,31 +75,31 @@ impl PartialEq for GuiConfig {
     }
 }
 
-impl GuiConfigBuilder {
-    fn validate(&self) -> Result<(), GuiConfigBuilderError> {
+impl ConfigBuilder {
+    fn validate(&self) -> Result<(), ConfigBuilderError> {
         if let Some(0) = self.initial_cols {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Initial number of columns ({}) must be greater than 0",
                 self.initial_cols.as_ref().unwrap()
             )));
         }
 
         if let Some(0) = self.initial_rows {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Initial number of rows ({}) must be greater than 0",
                 self.initial_rows.as_ref().unwrap()
             )));
         }
 
         if self.cell_size.is_some_and(|size| size <= 0.) {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Cell size ({}) must be greater than 0",
                 self.cell_size.unwrap()
             )));
         }
 
         if self.text_size.is_some_and(|size| size <= 0.) {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Text size ({}) must be greater than 0",
                 self.text_size.unwrap()
             )));
@@ -110,7 +110,7 @@ impl GuiConfigBuilder {
             .as_ref()
             .is_some_and(|range| range.start == 0)
         {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Start of row range ({}) must be greater than 0",
                 self.row_range.as_ref().unwrap().start
             )));
@@ -121,13 +121,13 @@ impl GuiConfigBuilder {
             .as_ref()
             .is_some_and(|range| range.start == 0)
         {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Start of column range ({}) must be greater than 0",
                 self.col_range.as_ref().unwrap().start
             )));
         }
 
-        let default_config = GuiConfig::default();
+        let default_config = Config::default();
         let initial_rows = self.initial_rows.unwrap_or(default_config.initial_rows);
         let initial_cols = self.initial_cols.unwrap_or(default_config.initial_cols);
         let initial_language = self
@@ -140,7 +140,7 @@ impl GuiConfigBuilder {
             .as_ref()
             .is_some_and(|range| !range.contains(&initial_rows))
         {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Initial number of rows ({initial_rows}) must be in the range {:?}",
                 self.row_range.as_ref().unwrap()
             )));
@@ -151,7 +151,7 @@ impl GuiConfigBuilder {
             .as_ref()
             .is_some_and(|range| !range.contains(&initial_cols))
         {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Initial number of columns ({initial_cols}) must be in the range {:?}",
                 self.col_range.as_ref().unwrap()
             )));
@@ -162,7 +162,7 @@ impl GuiConfigBuilder {
             .as_ref()
             .is_some_and(|ctx| !ctx.contains_key(initial_language))
         {
-            return Err(GuiConfigBuilderError::ValidationError(format!(
+            return Err(ConfigBuilderError::ValidationError(format!(
                 "Initial language ({initial_language}) must be available in the translation context {:?}",
                 self.tranlation_ctx.as_ref().unwrap().get_keys()
             )));
@@ -184,7 +184,7 @@ impl TryInto<egui::KeyboardShortcut> for KeyboardShortcut {
     fn try_into(self) -> Result<egui::KeyboardShortcut, Self::Error> {
         let modifiers = self
             .modifiers
-            .unwrap_or(vec![])
+            .unwrap_or_default()
             .into_iter()
             .map(|modifier| -> Result<egui::Modifiers, Self::Error> {
                 match modifier {
@@ -250,11 +250,11 @@ impl TranslationCtx {
                 DeserializeError::Custom(format!("text \"{text}\" not found in \"{key}\" "))
             }
             JSONGetTextBuildError::DuplicatedKey(Key(key)) => {
-                DeserializeError::Custom(format!("translation \"{key}\" was already defined"))
+                DeserializeError::Custom(format!("translation \"{key}\" is already defined"))
             }
-            JSONGetTextBuildError::IOError(error) => DeserializeError::Custom(format!("{}", error)),
+            JSONGetTextBuildError::IOError(error) => DeserializeError::Custom(format!("{error}")),
             JSONGetTextBuildError::SerdeJSONError(error) => {
-                DeserializeError::Custom(format!("{}", error))
+                DeserializeError::Custom(format!("{error}"))
             }
         }
     }
@@ -269,10 +269,8 @@ impl<'a> TryInto<JSONGetText<'a>> for TranslationCtx {
         let builder = self
             .translations
             .into_iter()
-            .fold(Ok(&mut builder), |builder: Result<_, _>, translation| {
-                builder.and_then(|builder: &mut JSONGetTextBuilder| {
-                    builder.add_json_file(translation.key, translation.path)
-                })
+            .try_fold(&mut builder, |builder, translation| {
+                builder.add_json_file(translation.key, translation.path)
             })
             .map_err(TranslationCtx::map_error)?;
 
@@ -291,7 +289,7 @@ impl TryInto<log::LevelFilter> for LevelFilter {
 
     fn try_into(self) -> Result<log::LevelFilter, Self::Error> {
         log::LevelFilter::from_str(self.0.as_str())
-            .map_err(|err| DeserializeError::Custom(format!("{}", err)))
+            .map_err(|err| DeserializeError::Custom(format!("{err}")))
     }
 }
 
@@ -299,30 +297,30 @@ impl TryInto<log::LevelFilter> for LevelFilter {
 mod config_tests {
     use json_gettext::JSONGetTextBuilder;
 
-    use crate::config::{GuiConfig, GuiConfigBuilder, GuiConfigBuilderError};
+    use crate::gui::config::{Config, ConfigBuilder, ConfigBuilderError};
 
     #[test]
     fn verify_default() {
         assert_eq!(
-            GuiConfig::default(),
-            GuiConfigBuilder::create_empty().build().unwrap()
+            Config::default(),
+            ConfigBuilder::create_empty().build().unwrap()
         );
 
         assert_eq!(
-            GuiConfigBuilder::default().build().unwrap(),
-            GuiConfigBuilder::create_empty().build().unwrap()
+            ConfigBuilder::default().build().unwrap(),
+            ConfigBuilder::create_empty().build().unwrap()
         );
     }
 
     #[test]
     fn test_validation_initial_cols() {
-        assert!(GuiConfigBuilder::create_empty()
+        assert!(ConfigBuilder::create_empty()
             .initial_cols(0u8)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => {
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => {
                         msg == "Initial number of columns (0) must be greater than 0"
                     }
                 }
@@ -331,13 +329,13 @@ mod config_tests {
 
     #[test]
     fn test_validation_initial_rows() {
-        assert!(GuiConfigBuilder::create_empty()
+        assert!(ConfigBuilder::create_empty()
             .initial_rows(0u8)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => {
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => {
                         msg == "Initial number of rows (0) must be greater than 0"
                     }
                 }
@@ -346,13 +344,13 @@ mod config_tests {
 
     #[test]
     fn test_validation_cell_size() {
-        assert!(GuiConfigBuilder::create_empty()
+        assert!(ConfigBuilder::create_empty()
             .cell_size(0.)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => {
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => {
                         msg == "Cell size (0) must be greater than 0"
                     }
                 }
@@ -361,13 +359,13 @@ mod config_tests {
 
     #[test]
     fn test_validation_text_size() {
-        assert!(GuiConfigBuilder::create_empty()
+        assert!(ConfigBuilder::create_empty()
             .text_size(0.)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => {
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => {
                         msg == "Text size (0) must be greater than 0"
                     }
                 }
@@ -376,28 +374,27 @@ mod config_tests {
 
     #[test]
     fn test_validation_col_range() {
-        assert!(GuiConfigBuilder::create_empty()
+        assert!(ConfigBuilder::create_empty()
             .col_range(0..1)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => {
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => {
                         msg == "Start of column range (0) must be greater than 0"
                     }
                 }
             }));
 
-        let initial_cols = GuiConfig::default().initial_cols;
-        assert!(GuiConfigBuilder::create_empty()
+        let initial_cols = Config::default().initial_cols;
+        assert!(ConfigBuilder::create_empty()
             .col_range(initial_cols..initial_cols)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => msg.contains(&format!(
-                        "Initial number of columns ({}) must be in the range",
-                        initial_cols
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => msg.contains(&format!(
+                        "Initial number of columns ({initial_cols}) must be in the range"
                     )),
                 }
             }));
@@ -405,28 +402,27 @@ mod config_tests {
 
     #[test]
     fn test_validation_row_range() {
-        assert!(GuiConfigBuilder::create_empty()
+        assert!(ConfigBuilder::create_empty()
             .row_range(0..69)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => {
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => {
                         msg == "Start of row range (0) must be greater than 0"
                     }
                 }
             }));
 
-        let initial_rows = GuiConfig::default().initial_rows;
-        assert!(GuiConfigBuilder::create_empty()
+        let initial_rows = Config::default().initial_rows;
+        assert!(ConfigBuilder::create_empty()
             .row_range(initial_rows..initial_rows)
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => msg.contains(&format!(
-                        "Initial number of rows ({}) must be in the range",
-                        initial_rows
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => msg.contains(&format!(
+                        "Initial number of rows ({initial_rows}) must be in the range"
                     )),
                 }
             }));
@@ -440,14 +436,14 @@ mod config_tests {
             .unwrap();
 
         let initial_language = "sk_SK";
-        assert!(GuiConfigBuilder::create_empty()
+        assert!(ConfigBuilder::create_empty()
             .initial_language(initial_language)
             .tranlation_ctx(ctx_builder.build().unwrap())
             .build()
             .is_err_and(|err| {
                 match err {
-                    GuiConfigBuilderError::UninitializedField(_) => false,
-                    GuiConfigBuilderError::ValidationError(msg) => {
+                    ConfigBuilderError::UninitializedField(_) => false,
+                    ConfigBuilderError::ValidationError(msg) => {
                         msg.contains(&format!("Initial language ({initial_language}) must be available in the translation context"))
                     }
                 }
@@ -456,8 +452,8 @@ mod config_tests {
 
     #[test]
     fn test_deserialize_empty_config() {
-        let config_builder: GuiConfigBuilder = serde_json::from_str("{}").unwrap();
-        assert_eq!(GuiConfig::default(), config_builder.build().unwrap())
+        let config_builder: ConfigBuilder = serde_json::from_str("{}").unwrap();
+        assert_eq!(Config::default(), config_builder.build().unwrap());
     }
 
     #[test]
@@ -467,7 +463,7 @@ mod config_tests {
             .add_json_file("en_UK", "locales/en_UK.json")
             .unwrap();
 
-        let config_builder: GuiConfigBuilder = serde_json::from_str(stringify!({
+        let config_builder: ConfigBuilder = serde_json::from_str(stringify!({
             "cell_size": 69.0,
             "text_size": 420.0,
             "initial_rows": 15,
@@ -484,7 +480,7 @@ mod config_tests {
         .unwrap();
 
         assert_eq!(
-            GuiConfig {
+            Config {
                 cell_size: 69.,
                 text_size: 420.,
                 initial_rows: 15,
@@ -502,6 +498,6 @@ mod config_tests {
                 log_level: log::LevelFilter::Warn.into()
             },
             config_builder.build().unwrap()
-        )
+        );
     }
 }
