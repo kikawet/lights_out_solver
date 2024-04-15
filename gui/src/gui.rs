@@ -298,6 +298,7 @@ impl Gui {
     /// Color will be set based on marked (is part of the solution) and active (is triggered)
     ///
     fn draw_cell_base(&self, ui: &mut egui::Ui, marked: bool, active: bool) -> egui::Response {
+        //TODO: make colors configurable rather than hardcoded
         let color = match (marked, active) {
             (true, true) => egui::Color32::from_rgb(255, 165, 0), // Orange
             (true, false) => egui::Color32::GOLD,

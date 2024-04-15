@@ -1,7 +1,7 @@
 
 # Lights out solver
 
-CLI program created in Rust to solve [Lights out puzzle](https://mathworld.wolfram.com/LightsOutPuzzle.html).
+CLI+GUI program created in Rust to solve [Lights out puzzle](https://mathworld.wolfram.com/LightsOutPuzzle.html).
 
 It finds the minimal solution and you aswell run in simulation mode to check that the board is going to look after a number of steps.
 ## Usage/Examples of flags
@@ -176,12 +176,17 @@ Go to the project directory
   cd lights_out_solver
 ```
 
-Install and run the project
+Install and run the CLI project
 
 ```bash
-  cargo run -- -h
+  cargo run --bin los -- -h
 ```
 
+Run the GUI version
+
+```bash
+  cargo run --bin los-gui
+```
 
 ## Running Tests
 
