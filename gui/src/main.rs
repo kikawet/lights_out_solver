@@ -13,7 +13,9 @@ use simple_logger::SimpleLogger;
 use crate::gui::LOSGui;
 
 fn main() {
+    //TODO: read CLI args to dinamically read config files
     let config = ::config::Config::builder()
+        .add_source(::config::File::with_name("gui/config/release").required(false))
         .add_source(::config::Environment::with_prefix("LOS"))
         .build()
         .expect("Unable to load config from extenal sources")

@@ -22,14 +22,12 @@ pub struct GuiConfig {
     pub initial_cols: usize,
     pub row_range: Range<usize>,
     pub col_range: Range<usize>,
-    pub exit_shortcut:
-        AdapterDeserializer<'static, KeyboardShortcut<'static>, egui::KeyboardShortcut>,
-    pub reset_shortcut:
-        AdapterDeserializer<'static, KeyboardShortcut<'static>, egui::KeyboardShortcut>,
-    pub solve_shortcut:
-        AdapterDeserializer<'static, KeyboardShortcut<'static>, egui::KeyboardShortcut>,
-    pub tranlation_ctx: AdapterDeserializer<'static, TranslationCtx<'static>, JSONGetText<'static>>,
-    pub initial_language: &'static str,
+    pub exit_shortcut: AdapterDeserializer<'static, KeyboardShortcut, egui::KeyboardShortcut>,
+    pub reset_shortcut: AdapterDeserializer<'static, KeyboardShortcut, egui::KeyboardShortcut>,
+    pub solve_shortcut: AdapterDeserializer<'static, KeyboardShortcut, egui::KeyboardShortcut>,
+    #[builder_field_attr(serde(borrow))]
+    pub tranlation_ctx: AdapterDeserializer<'static, TranslationCtx, JSONGetText<'static>>,
+    pub initial_language: String,
     pub log_level: AdapterDeserializer<'static, LevelFilter, log::LevelFilter>,
 }
 
@@ -54,7 +52,7 @@ impl Default for GuiConfig {
             )
             .unwrap()
             .into(),
-            initial_language: "en_UK",
+            initial_language: "en_UK".to_owned(),
             log_level: log::LevelFilter::Debug.into(),
         }
     }
@@ -134,7 +132,8 @@ impl GuiConfigBuilder {
         let initial_cols = self.initial_cols.unwrap_or(default_config.initial_cols);
         let initial_language = self
             .initial_language
-            .unwrap_or(default_config.initial_language);
+            .as_ref()
+            .unwrap_or(&default_config.initial_language);
 
         if self
             .row_range
@@ -174,18 +173,18 @@ impl GuiConfigBuilder {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct KeyboardShortcut<'a> {
-    #[serde(borrow)]
-    pub modifiers: Vec<&'a str>,
+pub struct KeyboardShortcut {
+    pub modifiers: Option<Vec<String>>,
     pub key: egui::Key,
 }
 
-impl<'a> TryInto<egui::KeyboardShortcut> for KeyboardShortcut<'a> {
-    type Error = DeserializeError<'a>;
+impl TryInto<egui::KeyboardShortcut> for KeyboardShortcut {
+    type Error = DeserializeError<'static>;
 
     fn try_into(self) -> Result<egui::KeyboardShortcut, Self::Error> {
         let modifiers = self
             .modifiers
+            .unwrap_or(vec![])
             .into_iter()
             .map(|modifier| -> Result<egui::Modifiers, Self::Error> {
                 match modifier {
@@ -211,7 +210,7 @@ impl<'a> TryInto<egui::KeyboardShortcut> for KeyboardShortcut<'a> {
                     }
                     // name if egui::ModifierNames::NAMES.mac_alt == name => Ok(egui::Modifiers::),//Not supported
                     name => Err(DeserializeError::InvalidValue(
-                        Unexpected::Str(name),
+                        Unexpected::Str(Box::leak(name.into_boxed_str())),
                         "[ALT, CTRL, SHIFT, CMD]", //TODO: replace with list of valid modifiers
                     )),
                 }
@@ -229,19 +228,19 @@ impl<'a> TryInto<egui::KeyboardShortcut> for KeyboardShortcut<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TranslationCtx<'a> {
-    default_key: &'a str,
-    translations: Vec<TranslationCtxItem<'a>>,
+pub struct TranslationCtx {
+    default_key: String,
+    translations: Vec<TranslationCtxItem>,
 }
 
 #[derive(Debug, Deserialize)]
-struct TranslationCtxItem<'a> {
-    key: &'a str,
-    path: &'a str,
+struct TranslationCtxItem {
+    key: String,
+    path: String,
 }
 
-impl<'a> TranslationCtx<'a> {
-    fn map_error(error: json_gettext::JSONGetTextBuildError) -> DeserializeError<'a> {
+impl TranslationCtx {
+    fn map_error<'a>(error: json_gettext::JSONGetTextBuildError) -> DeserializeError<'a> {
         use json_gettext::{JSONGetTextBuildError, Key};
         match error {
             JSONGetTextBuildError::DefaultKeyNotFound => {
@@ -261,7 +260,7 @@ impl<'a> TranslationCtx<'a> {
     }
 }
 
-impl<'a> TryInto<JSONGetText<'a>> for TranslationCtx<'a> {
+impl<'a> TryInto<JSONGetText<'a>> for TranslationCtx {
     type Error = DeserializeError<'a>;
 
     fn try_into(self) -> Result<JSONGetText<'a>, Self::Error> {
@@ -499,7 +498,7 @@ mod config_tests {
                 solve_shortcut: egui::KeyboardShortcut::new(egui::Modifiers::SHIFT, egui::Key::T)
                     .into(),
                 tranlation_ctx: ctx_builder.build().unwrap().into(),
-                initial_language: "en_UK",
+                initial_language: "en_UK".to_owned(),
                 log_level: log::LevelFilter::Warn.into()
             },
             config_builder.build().unwrap()
