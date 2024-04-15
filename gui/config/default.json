@@ -36,5 +36,5 @@
         ]
     },
     "initial_language": "en_UK",
-    "log_level": "WARN"
+    "log_level": "DEBUG"
 }
