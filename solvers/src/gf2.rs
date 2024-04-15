@@ -1,6 +1,8 @@
+use crate::Solution;
+
 use super::board::{Binary, Board};
 
-pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
+pub fn solve(board: &dyn Board) -> Solution {
     let (cols, rows) = board.size();
 
     let mut matrix = vec![vec![0usize; rows * cols]; rows * cols];
@@ -33,7 +35,7 @@ pub fn solve(board: &dyn Board) -> Option<Vec<usize>> {
             .collect::<Vec<usize>>()
     })
 }
-fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Option<Vec<usize>> {
+fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Solution {
     fn swap(m: &mut [Vec<usize>], sol: &mut [usize], i: usize, j: usize) {
         if i == j {
             return;

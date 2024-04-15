@@ -1,5 +1,7 @@
 // Credit https://github.com/oovm/deus-rs/blob/master/src/solvers/state2.rs
 
+use crate::BoardCell;
+
 pub trait Board {
     fn size(&self) -> (usize, usize);
     fn cols(&self) -> usize;
@@ -7,12 +9,13 @@ pub trait Board {
     fn is_solved(&self) -> bool;
     fn trigger_coord(&mut self, col: usize, row: usize) -> &mut dyn Board;
     fn trigger_index(&mut self, index: usize) -> &mut dyn Board;
-    fn get(&self, col: usize, row: usize) -> Option<usize>;
+    fn get_index(&self, col: usize, row: usize) -> usize;
+    fn get(&self, col: usize, row: usize) -> BoardCell;
     fn set(&mut self, col: usize, row: usize, value: usize) -> bool;
     fn iter(&self) -> std::slice::Iter<'_, usize>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Binary {
     cols: usize,
     rows: usize,
@@ -49,10 +52,6 @@ impl Binary {
 
         Binary { cols, rows, board }
     }
-
-    fn get_index(&self, col: usize, row: usize) -> usize {
-        row * self.cols + col
-    }
 }
 
 impl Board for Binary {
@@ -72,13 +71,17 @@ impl Board for Binary {
         self.board.iter()
     }
 
-    fn get(&self, col: usize, row: usize) -> Option<usize> {
+    fn get(&self, col: usize, row: usize) -> BoardCell {
         if col < self.cols && row < self.rows {
             let index = self.get_index(col, row);
             Some(self.board[index])
         } else {
             None
         }
+    }
+
+    fn get_index(&self, col: usize, row: usize) -> usize {
+        row * self.cols + col
     }
 
     fn set(&mut self, col: usize, row: usize, value: usize) -> bool {

@@ -1,0 +1,40 @@
+{
+    "cell_size": 50,
+    "text_size": 25,
+    "initial_rows": 5,
+    "initial_cols": 5,
+    "row_range": {
+        "start": 1,
+        "end": 10
+    },
+    "col_range": {
+        "start": 1,
+        "end": 10
+    },
+    "exit_shortcut": {
+        "key": "Q"
+    },
+    "reset_shortcut": {
+        "modifiers": [
+            "SHIFT"
+        ],
+        "key": "R"
+    },
+    "solve_shortcut": {
+        "modifiers": [
+            "SHIFT"
+        ],
+        "key": "S"
+    },
+    "tranlation_ctx": {
+        "default_key": "en_UK",
+        "translations": [
+            {
+                "key": "en_UK",
+                "path": "gui/locales/en_UK.json"
+            }
+        ]
+    },
+    "initial_language": "en_UK",
+    "log_level": "DEBUG"
+}
