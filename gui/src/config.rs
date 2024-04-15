@@ -1,7 +1,8 @@
-use std::ops::Range;
+use std::{ops::Range, str::FromStr};
 
 use derive_builder::Builder;
 use json_gettext::{JSONGetText, JSONGetTextBuilder};
+
 use serde::{de::Unexpected, Deserialize};
 
 use crate::adapter::{AdapterDeserializer, DeserializeError};
@@ -29,6 +30,7 @@ pub struct GuiConfig {
         AdapterDeserializer<'static, KeyboardShortcut<'static>, egui::KeyboardShortcut>,
     pub tranlation_ctx: AdapterDeserializer<'static, TranslationCtx<'static>, JSONGetText<'static>>,
     pub initial_language: &'static str,
+    pub log_level: AdapterDeserializer<'static, LevelFilter, log::LevelFilter>,
 }
 
 impl Default for GuiConfig {
@@ -53,6 +55,7 @@ impl Default for GuiConfig {
             .unwrap()
             .into(),
             initial_language: "en_UK",
+            log_level: log::LevelFilter::Debug.into(),
         }
     }
 }
@@ -281,6 +284,18 @@ impl<'a> TryInto<JSONGetText<'a>> for TranslationCtx<'a> {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct LevelFilter(String);
+
+impl TryInto<log::LevelFilter> for LevelFilter {
+    type Error = DeserializeError<'static>;
+
+    fn try_into(self) -> Result<log::LevelFilter, Self::Error> {
+        log::LevelFilter::from_str(self.0.as_str())
+            .map_err(|err| DeserializeError::Custom(format!("{}", err)))
+    }
+}
+
 #[cfg(test)]
 mod config_tests {
     use json_gettext::JSONGetTextBuilder;
@@ -464,7 +479,8 @@ mod config_tests {
             "solve_shortcut": { "modifiers": ["SHIFT"], "key": "T" },
             "reset_shortcut": { "modifiers": ["CTRL"], "key": "X" },
             "tranlation_ctx": { "default_key": "en_UK", "translations": [{"key": "en_UK", "path": "locales/en_UK.json"}] },
-            "initial_language": "en_UK"
+            "initial_language": "en_UK",
+            "log_level": "WARN"
         }))
         .unwrap();
 
@@ -483,7 +499,8 @@ mod config_tests {
                 solve_shortcut: egui::KeyboardShortcut::new(egui::Modifiers::SHIFT, egui::Key::T)
                     .into(),
                 tranlation_ctx: ctx_builder.build().unwrap().into(),
-                initial_language: "en_UK"
+                initial_language: "en_UK",
+                log_level: log::LevelFilter::Warn.into()
             },
             config_builder.build().unwrap()
         )

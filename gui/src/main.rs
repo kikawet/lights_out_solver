@@ -23,7 +23,7 @@ fn main() {
         .expect("Configuration must be valid");
 
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Debug) // TODO: read level filter value from config
+        .with_level(*config.log_level)
         .init()
         .expect("Unable to start logger");
 
