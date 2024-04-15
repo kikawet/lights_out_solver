@@ -6,9 +6,18 @@ mod lazy;
 
 #[macro_use]
 extern crate json_gettext;
-
 use gui::config;
+#[cfg(feature = "benchmark")]
+use gui::Events;
 use simple_logger::SimpleLogger;
+
+#[cfg(feature = "benchmark")]
+use std::{
+    process::exit,
+    sync::mpsc::Sender,
+    thread::{self, sleep},
+    time::{Duration, Instant},
+};
 
 use crate::gui::Gui;
 
@@ -39,7 +48,12 @@ fn main() {
         ..Default::default()
     };
 
-    let gui = Gui::new(config);
+    #[cfg(not(feature = "benchmark"))]
+    let benchmark = None;
+    #[cfg(feature = "benchmark")]
+    let benchmark = Some(setup_benchmark());
+
+    let gui = Gui::new(config, benchmark);
 
     eframe::run_native(
         &gui.get_text("app.title"),
@@ -47,4 +61,52 @@ fn main() {
         Box::new(|_cc| Box::new(gui)),
     )
     .expect("Error creating window");
+}
+
+#[cfg(feature = "benchmark")]
+fn setup_benchmark() -> Sender<Events> {
+    let (tx, rx) = std::sync::mpsc::channel::<Events>();
+
+    thread::spawn(|| {
+        sleep(Duration::from_secs(5));
+
+        let timestamps = rx
+            .into_iter()
+            .filter_map(|event| {
+                if let Events::TimeStamp(val) = event {
+                    Some(val)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        println!("timestamps: {}", timestamps.len());
+        let fps = calculate_frames_per_second(timestamps);
+
+        println!("{fps:?}");
+        exit(1);
+    });
+
+    tx
+}
+
+#[cfg(feature = "benchmark")]
+fn calculate_frames_per_second(timestamps: Vec<Instant>) -> Vec<usize> {
+    let frame_threshold = Duration::from_secs(1);
+    let mut fps: Vec<usize> = Vec::new();
+    let mut current_second: Instant = timestamps[0];
+    let mut current_frame_count = 0usize;
+
+    for timestamp in timestamps {
+        if timestamp.duration_since(current_second) < frame_threshold {
+            current_frame_count += 1;
+        } else {
+            current_second = timestamp;
+            fps.push(current_frame_count);
+            current_frame_count = 0;
+        }
+    }
+
+    fps
 }

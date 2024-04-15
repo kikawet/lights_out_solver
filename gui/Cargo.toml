@@ -20,3 +20,6 @@ solvers = { path = "../solvers" }
 [[bin]]
 name = "los-gui"
 path = "src/main.rs"
+
+[features]
+benchmark = []

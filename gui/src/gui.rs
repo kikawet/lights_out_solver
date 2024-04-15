@@ -3,10 +3,14 @@ pub mod config;
 use std::{
     collections::HashSet,
     sync::mpsc::{Receiver, Sender},
-    thread::{self},
+    thread,
 };
 
+#[cfg(feature = "benchmark")]
+use std::time::Instant;
+
 use eframe::egui;
+use egui::ahash::{HashMap, HashMapExt};
 use log::{debug, warn};
 use solvers::{
     board::{Binary, Board},
@@ -24,11 +28,14 @@ pub struct Gui {
     tx: Sender<Events>,
     rx: Receiver<Events>,
     language: String,
+    #[cfg(feature = "benchmark")]
+    benchmark: Sender<Events>,
+    language_cache: HashMap<String, String>,
 }
 
 type Solution = Option<HashSet<usize>>;
 
-enum Events {
+pub enum Events {
     IncreaseRow,
     DecreaseRow,
     IncreaseCol,
@@ -38,11 +45,17 @@ enum Events {
     Reset,
     Solve,
     SolutionFound(Solution),
+    #[cfg(feature = "benchmark")]
+    TimeStamp(Instant),
+    CacheMiss(String, String),
 }
 
 impl Gui {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, benchmark: Option<Sender<Events>>) -> Self {
         let (tx, rx) = std::sync::mpsc::channel();
+
+        #[cfg(not(feature = "benchmark"))]
+        drop(benchmark);
 
         Self {
             language: config.initial_language.to_string(),
@@ -51,6 +64,9 @@ impl Gui {
             solution: Lazy::default(),
             tx,
             rx,
+            #[cfg(feature = "benchmark")]
+            benchmark: benchmark.unwrap(),
+            language_cache: HashMap::new(),
         }
     }
 
@@ -345,7 +361,12 @@ impl Gui {
     }
 
     pub fn get_text(&self, translation_key: impl Into<String>) -> String {
-        //TODO: may be worth add cache
+        let key: String = translation_key.into();
+
+        if let Some(text) = self.language_cache.get(&key) {
+            return text.clone();
+        }
+
         if !self.config.tranlation_ctx.contains_key(&self.language) {
             warn!(
                 "Language {} not loaded, using default translation",
@@ -353,17 +374,21 @@ impl Gui {
             );
         }
 
-        let key = translation_key.into();
-        self.config
+        let text = self
+            .config
             .tranlation_ctx
             .get_text_with_key(&self.language, &key)
             .map_or_else(
                 || {
                     warn!("Translation with key {} not found", key);
-                    key
+                    key.clone()
                 },
                 |val| val.to_string(),
-            )
+            );
+
+        self.queue_event(Events::CacheMiss(key, text.clone()));
+
+        text
     }
 }
 
@@ -417,8 +442,16 @@ impl eframe::App for Gui {
                 Events::SolutionFound(solution) => {
                     self.solution = Lazy::Completed(solution);
                 }
+                #[cfg(feature = "benchmark")]
+                Events::TimeStamp(_) => unreachable!(),
+                Events::CacheMiss(key, value) => {
+                    self.language_cache.insert(key, value);
+                }
             }
         }
+
+        #[cfg(feature = "benchmark")]
+        let _ = self.benchmark.send(Events::TimeStamp(Instant::now()));
     }
 }
 
