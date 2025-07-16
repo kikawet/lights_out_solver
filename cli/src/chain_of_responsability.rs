@@ -6,11 +6,10 @@ pub mod worker;
 
 #[macro_export]
 macro_rules! define_chainable {
-    ($chainable:ident $(, $field:ident : $field_type:ty)*) => {
+    ($chainable:ident) => {
         #[derive(Default)]
         pub struct $chainable {
-            next: Option<Box<dyn Worker>>,
-            $($field : $field_type,)* // This will add the specified fields to the struct
+            next: Option<Box<dyn Worker>>
         }
 
         impl Chainable for $chainable {

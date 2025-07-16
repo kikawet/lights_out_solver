@@ -11,32 +11,37 @@ use clap::{Parser, ValueEnum};
 pub struct Args {
     /// Indexes of the active lights
     ///
-    /// Range from 1 to [cols]*[rows]
+    /// Values in the range [1, cols*rows]
     pub lights: Vec<usize>,
 
     /// The number of rows
     ///
-    /// Minimun allowed value: 1
+    /// Minimum allowed value: 1
     #[arg(short, long, default_value_t = 3)]
     pub rows: usize,
+
     /// The number of columns
     ///  
-    /// Minimun allowed value: 1
+    /// Minimum allowed value: 1
     #[arg(short, long, default_value_t = 3)]
     pub cols: usize,
+
     /// Enable the debug logs
     ///
     /// Default: false
     #[arg(short, long, default_value_t = false)]
     pub verbose: bool,
+
     /// Run a simulation with the given input
     ///
-    /// Range from 1 to [cols]*[rows] of the positions to toggle
+    /// Values in the range [1, cols*rows] of the positions to toggle
     #[arg(short, long, value_name = "STEPS")]
     pub simulation_steps: Vec<usize>,
+
     /// Sets the way you display the results
     #[arg(short, long, value_enum, value_name="MODE", default_value_t=Display::Draw)]
     pub display_mode: Display,
+
     /// Position of the starting index
     ///
     /// Changes where the first index is located in the matrix (eg: bl = bottom left), the default value is "Bottom left" to mimic a numpad
@@ -95,14 +100,14 @@ mod args_tests {
     #[test]
     fn test_input_lights() {
         let input = Args::try_parse_from(test_args!("7", "9", "1", "3"))
-            .expect("ligths are not parsed properly");
+            .expect("lights are not parsed properly");
 
         assert_eq!(input.lights, vec![7, 9, 1, 3]);
     }
 
     #[test]
     fn test_defaults() {
-        let input = Args::try_parse_from(test_args!()).expect("ligths are not parsed properly");
+        let input = Args::try_parse_from(test_args!()).expect("lights are not parsed properly");
 
         assert_eq!(input.lights.len(), 0);
         assert_eq!(input.cols, 3);

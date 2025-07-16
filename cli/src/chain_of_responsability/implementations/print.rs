@@ -49,21 +49,20 @@ impl Handler for PrintWorker {
             return Ok(state);
         };
         let board = state.board.as_deref().expect("Unable to access board");
+        let mut solution = solution.clone();
+        let (cols, rows) = board.size();
+
+        SanitizeWorker::rotate_light_indices(
+            &mut solution,
+            cols,
+            rows,
+            state.args.origin_location,
+        );
 
         if display_mode == Display::Simple || display_mode == Display::All {
-            // need to clone solution bc in display mode 'all' this is going to change the board
-            let mut solution = solution.clone();
+            let mut solution =  solution.clone();
             solution.iter_mut().for_each(|val| *val += 1);
-
-            let (cols, rows) = board.size();
-
-            SanitizeWorker::rotate_light_indices(
-                &mut solution,
-                cols,
-                rows,
-                state.args.origin_location,
-            );
-
+            solution.sort_unstable();
             println!("{solution:?}");
         }
 

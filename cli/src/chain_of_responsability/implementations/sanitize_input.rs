@@ -11,7 +11,7 @@ use crate::{
 define_chainable!(SanitizeWorker);
 
 impl SanitizeWorker {
-    /// Transformation are symectric so calling this twice with the same state is going to undo the changes
+    /// Transformation are symmetric so calling this twice with the same state is going to undo the changes
     /// It rotates the indices to the origin Top Left
     pub fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, location: Origin) {
         match location {
