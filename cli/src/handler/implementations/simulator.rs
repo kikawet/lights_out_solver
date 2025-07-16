@@ -1,8 +1,9 @@
+use log::debug;
+use solvers::board::Board;
+
 use super::print::PrintHandler;
 use crate::handler::r#trait::Handler;
 use crate::handler::state::ValidState;
-use log::debug;
-use solvers::board::Board;
 
 pub struct SimulatorHandler;
 

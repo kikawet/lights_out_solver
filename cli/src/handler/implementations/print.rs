@@ -1,11 +1,10 @@
 use log::debug;
 use solvers::board::Board;
 
+use crate::args::Display;
+use crate::handler::implementations::sanitize_input::SanitizeHandler;
+use crate::handler::r#trait::Handler;
 use crate::handler::state::SolvedState;
-use crate::{
-    args::Display,
-    handler::{implementations::sanitize_input::SanitizeHandler, r#trait::Handler},
-};
 
 pub struct PrintHandler;
 

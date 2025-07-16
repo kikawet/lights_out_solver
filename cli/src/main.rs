@@ -3,19 +3,16 @@ mod handler;
 
 use args::Args;
 use clap::{Error, Parser};
-use handler::{
-    implementations::{
-        print::PrintHandler, sanitize_input::SanitizeHandler, simulator::SimulatorHandler,
-        solver::SolverHandler, validate::ValidateHandler,
-    },
-    state::State,
-};
-
 use log::info;
-
-use crate::handler::r#trait::Handler;
-use crate::handler::state::{SolvedState, ValidState};
 use simple_logger::SimpleLogger;
+
+use crate::handler::implementations::print::PrintHandler;
+use crate::handler::implementations::sanitize_input::SanitizeHandler;
+use crate::handler::implementations::simulator::SimulatorHandler;
+use crate::handler::implementations::solver::SolverHandler;
+use crate::handler::implementations::validate::ValidateHandler;
+use crate::handler::r#trait::Handler;
+use crate::handler::state::{SolvedState, State, ValidState};
 
 #[macro_export]
 macro_rules! chain {

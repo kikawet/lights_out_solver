@@ -74,12 +74,12 @@ pub enum Origin {
 
 #[cfg(test)]
 mod args_tests {
-    use crate::args::Display;
-    use crate::args::Origin;
     use clap::CommandFactory;
     use clap::Parser;
 
     use super::Args;
+    use crate::args::Display;
+    use crate::args::Origin;
 
     macro_rules! test_args {
         ($($arg:expr),*) => {

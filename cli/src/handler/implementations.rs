@@ -6,9 +6,8 @@ pub mod validate;
 
 #[cfg(test)]
 mod impl_chain_tests {
-    use crate::args::Origin;
-
     use super::sanitize_input::SanitizeHandler;
+    use crate::args::Origin;
 
     #[test]
     fn rotate_3x3() {

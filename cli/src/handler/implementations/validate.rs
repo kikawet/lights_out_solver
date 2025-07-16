@@ -1,7 +1,7 @@
-use crate::handler::state::ValidState;
-use crate::handler::{r#trait::Handler, state::State};
 use clap::error::ErrorKind;
 use solvers::board::Binary;
+use crate::handler::r#trait::Handler;
+use crate::handler::state::{State, ValidState};
 
 pub struct ValidateHandler;
 

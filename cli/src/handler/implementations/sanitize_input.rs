@@ -1,7 +1,8 @@
 use solvers::board::Binary;
 
+use crate::args::Origin;
+use crate::handler::r#trait::Handler;
 use crate::handler::state::ValidState;
-use crate::{args::Origin, handler::r#trait::Handler};
 
 pub struct SanitizeHandler;
 
