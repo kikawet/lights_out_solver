@@ -1,50 +1,47 @@
 mod args;
-mod chain_of_responsability;
+mod handler;
 
 use args::Args;
-use chain_of_responsability::{
-    chainable::Chainable,
+use clap::{Error, Parser};
+use handler::{
     implementations::{
-        print::PrintWorker, sanitize_input::SanitizeWorker, simulator::SimulatorWorker,
-        solver::SolverWorker, validate_range::ValidateRangeWorker,
+        print::PrintHandler, sanitize_input::SanitizeHandler, simulator::SimulatorHandler,
+        solver::SolverHandler, validate::ValidateHandler,
     },
     state::State,
-    worker::Worker,
 };
-use clap::Parser;
 
 use log::info;
 
+use crate::handler::r#trait::Handler;
+use crate::handler::state::{SolvedState, ValidState};
 use simple_logger::SimpleLogger;
+
+#[macro_export]
+macro_rules! chain {
+    ($state:ident, $first:expr, $( $handler:expr ),* ) => {
+        {
+            $first.handle($state)
+            $(
+                .and_then(|s| $handler.handle(s))
+            )*
+        }
+    };
+}
 
 fn main() {
     let input = Args::parse();
     set_up_logger(&input);
 
-    let mut worker = get_worker_chain(&input);
+    // let chain = get_handler_chain(&input);
+    let run_solver = input.simulation_steps.is_empty();
     let state = State::new(input);
 
-    if let Some(err) = worker.execute(state).err() {
+    let chain = chain!(state, ValidateHandler, SanitizeHandler, Branch(run_solver));
+
+    if let Some(err) = chain.err() {
         err.exit();
     }
-}
-
-fn get_worker_chain(args: &Args) -> Box<dyn Worker> {
-    let mut validator = Box::<ValidateRangeWorker>::default();
-    let sanitizer = Box::<SanitizeWorker>::default();
-
-    let sanitizer = validator.set_next(sanitizer);
-
-    if args.simulation_steps.is_empty() {
-        let solver = Box::<SolverWorker>::default();
-        let printer = Box::<PrintWorker>::default();
-        sanitizer.set_next(solver).set_next(printer);
-    } else {
-        let simulator = Box::<SimulatorWorker>::default();
-        sanitizer.set_next(simulator);
-    }
-
-    validator
 }
 
 fn set_up_logger(args: &Args) {
@@ -54,5 +51,31 @@ fn set_up_logger(args: &Args) {
             .init()
             .unwrap();
         info!("Verbose mode enabled");
+    }
+}
+
+#[derive(Default)]
+struct MappingHandler;
+
+impl Handler<ValidState, SolvedState> for MappingHandler {
+    fn handle(&self, state: ValidState) -> Result<SolvedState, Error> {
+        Ok(SolvedState {
+            args: state.args,
+            board: state.board,
+            solution: None,
+        })
+    }
+}
+
+#[derive(Default)]
+struct Branch(bool);
+
+impl Handler<ValidState, SolvedState> for Branch {
+    fn handle(&self, state: ValidState) -> Result<SolvedState, Error> {
+        if self.0 {
+            chain!(state, SolverHandler, PrintHandler)
+        } else {
+            chain!(state, SimulatorHandler, MappingHandler)
+        }
     }
 }

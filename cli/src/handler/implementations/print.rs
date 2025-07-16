@@ -1,18 +1,15 @@
 use log::debug;
 use solvers::board::Board;
 
+use crate::handler::state::SolvedState;
 use crate::{
     args::Display,
-    chain_of_responsability::{
-        chainable::Chainable, handler::Handler, implementations::sanitize_input::SanitizeWorker,
-        state::State, worker::Worker,
-    },
-    define_chainable,
+    handler::{implementations::sanitize_input::SanitizeHandler, r#trait::Handler},
 };
 
-define_chainable!(PrintWorker);
+pub struct PrintHandler;
 
-impl PrintWorker {
+impl PrintHandler {
     pub fn board_to_vec(board: &(impl Board + ?Sized)) -> Vec<String> {
         board
             .iter()
@@ -41,18 +38,17 @@ impl PrintWorker {
     }
 }
 
-impl Handler for PrintWorker {
-    fn handle(&self, state: State) -> Result<State, clap::error::Error> {
+impl Handler<SolvedState, SolvedState> for PrintHandler {
+    fn handle(&self, state: SolvedState) -> Result<SolvedState, clap::error::Error> {
         let display_mode = state.args.display_mode;
-        debug!("Display mode: {:?}", display_mode);
+        debug!("Display mode: {display_mode:?}");
         let Some(solution) = &state.solution else {
             return Ok(state);
         };
-        let board = state.board.as_deref().expect("Unable to access board");
         let mut solution = solution.clone();
-        let (cols, rows) = board.size();
+        let (cols, rows) = state.board.size();
 
-        SanitizeWorker::rotate_light_indices(
+        SanitizeHandler::rotate_light_indices(
             &mut solution,
             cols,
             rows,
@@ -60,20 +56,20 @@ impl Handler for PrintWorker {
         );
 
         if display_mode == Display::Simple || display_mode == Display::All {
-            let mut solution =  solution.clone();
+            let mut solution = solution.clone();
             solution.iter_mut().for_each(|val| *val += 1);
             solution.sort_unstable();
             println!("{solution:?}");
         }
 
         if display_mode == Display::Draw || display_mode == Display::All {
-            let mut mapped_board = Self::board_to_vec(board);
+            let mut mapped_board = Self::board_to_vec(state.board.as_ref());
 
             for (order, position) in solution.iter().enumerate() {
                 mapped_board[*position] = order.to_string();
             }
 
-            println!("{}", Self::vec_to_str(&mapped_board, board.cols()));
+            println!("{}", Self::vec_to_str(&mapped_board, state.board.cols()));
         }
 
         Ok(state)

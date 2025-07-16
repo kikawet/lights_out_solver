@@ -2,13 +2,13 @@ pub mod print;
 pub mod sanitize_input;
 pub mod simulator;
 pub mod solver;
-pub mod validate_range;
+pub mod validate;
 
 #[cfg(test)]
 mod impl_chain_tests {
     use crate::args::Origin;
 
-    use super::sanitize_input::SanitizeWorker;
+    use super::sanitize_input::SanitizeHandler;
 
     #[test]
     fn rotate_3x3() {
@@ -17,21 +17,21 @@ mod impl_chain_tests {
         let mut indices_bottom_right = [2, 6];
         let expected_top_left = [6, 2];
 
-        SanitizeWorker::rotate_light_indices(&mut indices_bottom_left, 3, 3, Origin::BottomLeft);
-        SanitizeWorker::rotate_light_indices(&mut indices_top_right, 3, 3, Origin::TopRight);
-        SanitizeWorker::rotate_light_indices(&mut indices_bottom_right, 3, 3, Origin::BottomRight);
+        SanitizeHandler::rotate_light_indices(&mut indices_bottom_left, 3, 3, Origin::BottomLeft);
+        SanitizeHandler::rotate_light_indices(&mut indices_top_right, 3, 3, Origin::TopRight);
+        SanitizeHandler::rotate_light_indices(&mut indices_bottom_right, 3, 3, Origin::BottomRight);
 
         assert_eq!(
             indices_bottom_left, expected_top_left,
-            "Convertion from BL to TL failed"
+            "Conversion from BL to TL failed"
         );
         assert_eq!(
             indices_top_right, expected_top_left,
-            "Convertion from TR to TL failed"
+            "Conversion from TR to TL failed"
         );
         assert_eq!(
             indices_bottom_right, expected_top_left,
-            "Convertion from BR to TL failed"
+            "Conversion from BR to TL failed"
         );
     }
 
@@ -42,21 +42,21 @@ mod impl_chain_tests {
         let mut indices_bottom_right = [1, 8];
         let expected_top_left = [8, 1];
 
-        SanitizeWorker::rotate_light_indices(&mut indices_bottom_left, 2, 5, Origin::BottomLeft);
-        SanitizeWorker::rotate_light_indices(&mut indices_top_right, 2, 5, Origin::TopRight);
-        SanitizeWorker::rotate_light_indices(&mut indices_bottom_right, 2, 5, Origin::BottomRight);
+        SanitizeHandler::rotate_light_indices(&mut indices_bottom_left, 2, 5, Origin::BottomLeft);
+        SanitizeHandler::rotate_light_indices(&mut indices_top_right, 2, 5, Origin::TopRight);
+        SanitizeHandler::rotate_light_indices(&mut indices_bottom_right, 2, 5, Origin::BottomRight);
 
         assert_eq!(
             indices_bottom_left, expected_top_left,
-            "Convertion from BL to TL failed"
+            "Conversion from BL to TL failed"
         );
         assert_eq!(
             indices_top_right, expected_top_left,
-            "Convertion from TR to TL failed"
+            "Conversion from TR to TL failed"
         );
         assert_eq!(
             indices_bottom_right, expected_top_left,
-            "Convertion from BR to TL failed"
+            "Conversion from BR to TL failed"
         );
     }
 }
