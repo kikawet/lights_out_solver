@@ -1,5 +1,6 @@
 use clap::error::ErrorKind;
 use solvers::board::Binary;
+
 use crate::handler::r#trait::Handler;
 use crate::handler::state::{State, ValidState};
 

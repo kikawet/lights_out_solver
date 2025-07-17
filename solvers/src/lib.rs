@@ -97,7 +97,7 @@ mod solver_tests {
     }
 
     #[test]
-    fn test_gf2_minimun_solution() {
+    fn test_gf2_minimum_solution() {
         let mut board = Binary::new_from_values(
             &[
                 true, false, true, //
@@ -120,7 +120,7 @@ mod solver_tests {
     }
 
     #[test]
-    fn test_recursive_minimun_solution() {
+    fn test_recursive_minimum_solution() {
         let mut board = Binary::new_from_values(
             &[
                 true, false, true, //
