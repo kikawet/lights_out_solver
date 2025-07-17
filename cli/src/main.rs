@@ -16,7 +16,7 @@ use crate::handler::state::{SolvedState, State, ValidState};
 
 #[macro_export]
 macro_rules! chain {
-    ($state:ident, $first:expr, $( $handler:expr ),* ) => {
+    ($state:ident, [$first:expr, $( $handler:expr ),*]) => {
         {
             $first.handle($state)
             $(
@@ -30,14 +30,37 @@ fn main() {
     let input = Args::parse();
     set_up_logger(&input);
 
-    // let chain = get_handler_chain(&input);
-    let run_solver = input.simulation_steps.is_empty();
-    let state = State::new(input);
-
-    let chain = chain!(state, ValidateHandler, SanitizeHandler, Branch(run_solver));
+    let chain = run_handlers(input);
 
     if let Some(err) = chain.err() {
         err.exit();
+    }
+}
+
+fn run_handlers(input: Args) -> Result<SolvedState, Error> {
+    let run_solver = input.simulation_steps.is_empty();
+    let state = State::new(input);
+
+    if run_solver {
+        chain!(
+            state,
+            [
+                ValidateHandler,
+                SanitizeHandler,
+                SolverHandler,
+                PrintHandler
+            ]
+        )
+    } else {
+        chain!(
+            state,
+            [
+                ValidateHandler,
+                SanitizeHandler,
+                SimulatorHandler,
+                MockSolverHandler
+            ]
+        )
     }
 }
 
@@ -52,27 +75,14 @@ fn set_up_logger(args: &Args) {
 }
 
 #[derive(Default)]
-struct MappingHandler;
+struct MockSolverHandler;
 
-impl Handler<ValidState, SolvedState> for MappingHandler {
+impl Handler<ValidState, SolvedState> for MockSolverHandler {
     fn handle(&self, state: ValidState) -> Result<SolvedState, Error> {
         Ok(SolvedState {
             args: state.args,
             board: state.board,
             solution: None,
         })
-    }
-}
-
-#[derive(Default)]
-struct Branch(bool);
-
-impl Handler<ValidState, SolvedState> for Branch {
-    fn handle(&self, state: ValidState) -> Result<SolvedState, Error> {
-        if self.0 {
-            chain!(state, SolverHandler, PrintHandler)
-        } else {
-            chain!(state, SimulatorHandler, MappingHandler)
-        }
     }
 }
