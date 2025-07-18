@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[command(
     name = "Lights Out Puzzle Solver",
     version,

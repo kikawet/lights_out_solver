@@ -1,14 +1,18 @@
+use std::io::Write;
+
 use log::debug;
 use solvers::board::Board;
 
 use crate::args::Display;
 use crate::handler::implementations::sanitize_input::SanitizeHandler;
-use crate::handler::r#trait::Handler;
+use crate::handler::r#trait::HandlerMut;
 use crate::handler::state::SolvedState;
 
-pub struct PrintHandler;
+pub struct PrintHandler<'a, T = ()> {
+    pub out: &'a mut T,
+}
 
-impl PrintHandler {
+impl<T> PrintHandler<'_, T> {
     pub fn board_to_vec(board: &(impl Board + ?Sized)) -> Vec<String> {
         board
             .iter()
@@ -37,8 +41,11 @@ impl PrintHandler {
     }
 }
 
-impl Handler<SolvedState, SolvedState> for PrintHandler {
-    fn handle(&self, state: SolvedState) -> Result<SolvedState, clap::error::Error> {
+impl<T> HandlerMut<SolvedState, SolvedState> for PrintHandler<'_, T>
+where
+    T: Write,
+{
+    fn handle(&mut self, state: SolvedState) -> Result<SolvedState, clap::error::Error> {
         let display_mode = state.args.display_mode;
         debug!("Display mode: {display_mode:?}");
         let Some(solution) = &state.solution else {
@@ -58,7 +65,8 @@ impl Handler<SolvedState, SolvedState> for PrintHandler {
             let mut solution = solution.clone();
             solution.iter_mut().for_each(|val| *val += 1);
             solution.sort_unstable();
-            println!("{solution:?}");
+
+            writeln!(&mut self.out, "{solution:?}")?;
         }
 
         if display_mode == Display::Draw || display_mode == Display::All {
@@ -68,7 +76,11 @@ impl Handler<SolvedState, SolvedState> for PrintHandler {
                 mapped_board[*position] = order.to_string();
             }
 
-            println!("{}", Self::vec_to_str(&mapped_board, state.board.cols()));
+            writeln!(
+                &mut self.out,
+                "{}",
+                Self::vec_to_str(&mapped_board, state.board.cols())
+            )?;
         }
 
         Ok(state)

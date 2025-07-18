@@ -9,7 +9,7 @@ pub struct SimulatorHandler;
 
 impl SimulatorHandler {
     fn prettify_board(board: &(impl Board + ?Sized)) -> String {
-        PrintHandler::vec_to_str(&PrintHandler::board_to_vec(board), board.cols())
+        PrintHandler::<()>::vec_to_str(&PrintHandler::<()>::board_to_vec(board), board.cols())
     }
 }
 
