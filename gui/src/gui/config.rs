@@ -2,7 +2,6 @@ use std::{ops::Range, str::FromStr};
 
 use derive_builder::Builder;
 use json_gettext::{JSONGetText, JSONGetTextBuilder};
-
 use serde::{de::Unexpected, Deserialize};
 
 use crate::adapter::{Adapter, DeserializeError};
@@ -16,7 +15,7 @@ use crate::adapter::{Adapter, DeserializeError};
     derive(Deserialize)
 )]
 pub struct Config {
-    pub cell_size: f32,
+    pub cell_size: i8,
     pub text_size: f32,
     pub initial_rows: usize,
     pub initial_cols: usize,
@@ -34,7 +33,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            cell_size: 50.,
+            cell_size: 50,
             text_size: 25.,
             initial_rows: 5,
             initial_cols: 5,
@@ -91,7 +90,7 @@ impl ConfigBuilder {
             )));
         }
 
-        if self.cell_size.is_some_and(|size| size <= 0.) {
+        if self.cell_size.is_some_and(|size| size <= 0) {
             return Err(ConfigBuilderError::ValidationError(format!(
                 "Cell size ({}) must be greater than 0",
                 self.cell_size.unwrap()
@@ -345,7 +344,7 @@ mod config_tests {
     #[test]
     fn test_validation_cell_size() {
         assert!(ConfigBuilder::create_empty()
-            .cell_size(0.)
+            .cell_size(0)
             .build()
             .is_err_and(|err| {
                 match err {
@@ -464,7 +463,7 @@ mod config_tests {
             .unwrap();
 
         let config_builder: ConfigBuilder = serde_json::from_str(stringify!({
-            "cell_size": 69.0,
+            "cell_size": 69,
             "text_size": 420.0,
             "initial_rows": 15,
             "initial_cols": 17,
@@ -481,7 +480,7 @@ mod config_tests {
 
         assert_eq!(
             Config {
-                cell_size: 69.,
+                cell_size: 69,
                 text_size: 420.,
                 initial_rows: 15,
                 initial_cols: 17,

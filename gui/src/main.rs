@@ -6,11 +6,7 @@ mod lazy;
 
 #[macro_use]
 extern crate json_gettext;
-use gui::config;
-#[cfg(feature = "benchmark")]
-use gui::Events;
-use simple_logger::SimpleLogger;
-
+//TODO: Remove everything about benchmark and use this crate since is already integrated with egui - https://github.com/EmbarkStudios/puffin/tree/main/puffin_egui
 #[cfg(feature = "benchmark")]
 use std::{
     process::exit,
@@ -19,16 +15,21 @@ use std::{
     time::{Duration, Instant},
 };
 
+use gui::config;
+#[cfg(feature = "benchmark")]
+use gui::Events;
+use simple_logger::SimpleLogger;
+
 use crate::gui::Gui;
 
 fn main() {
-    //TODO: read CLI args to dinamically read config files
+    //TODO: read CLI args to dynamically read config files
     let config = ::config::Config::builder()
         .add_source(::config::File::with_name("gui/config/default").required(false))
         .add_source(::config::File::with_name("gui/config/local").required(false))
         .add_source(::config::Environment::with_prefix("LOS"))
         .build()
-        .expect("Unable to load config from extenal sources")
+        .expect("Unable to load config from external sources")
         .try_deserialize::<config::ConfigBuilder>()
         .expect("Unable to deserialize GUI Config")
         .build()
@@ -59,7 +60,7 @@ fn main() {
     eframe::run_native(
         &gui.get_text("app.title"),
         options,
-        Box::new(|_cc| Box::new(gui)),
+        Box::new(|_cc| Ok(Box::new(gui))),
     )
     .expect("Error creating window");
 }
@@ -70,7 +71,8 @@ fn setup_benchmark() -> Sender<Events> {
 
     thread::spawn(|| {
         sleep(Duration::from_secs(5));
-
+        // TODO: For some reason this code collects everything after 5 seconds
+        // change it so is dynamic
         let timestamps = rx
             .into_iter()
             .filter_map(|event| {

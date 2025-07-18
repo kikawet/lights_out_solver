@@ -87,14 +87,16 @@ impl Handler<ValidState, SolvedState> for MockSolverHandler {
 
 #[cfg(test)]
 mod cli_tests {
-    use crate::args::{Args, Display, Origin};
-    use crate::handler::state::SolvedState;
-    use crate::run_program;
+    use std::fmt::{Debug, Formatter};
+    use std::sync::RwLock;
+
     use clap::Parser;
     use log::{LevelFilter, Log, Metadata, Record};
     use solvers::Solution;
-    use std::fmt::{Debug, Formatter};
-    use std::sync::RwLock;
+
+    use crate::args::{Args, Display, Origin};
+    use crate::handler::state::SolvedState;
+    use crate::run_program;
 
     struct TestArg<'a> {
         value: &'a str,
@@ -154,7 +156,7 @@ mod cli_tests {
                 verbose.iter(),
                 origin_location.iter()
             ])
-            //TODO: chain again to test simulation steps permutations![verbose.iter(), simulation_steps.iter()]
+        //TODO: chain again to test simulation steps permutations![verbose.iter(), simulation_steps.iter()]
         {
             let options_format = format!("{:?}", options.map(|o| o.value));
 

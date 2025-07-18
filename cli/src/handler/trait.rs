@@ -1,4 +1,3 @@
-
 pub trait Handler<I, O> {
     /// # Errors
     ///

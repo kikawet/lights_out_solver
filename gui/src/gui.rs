@@ -1,15 +1,15 @@
 pub mod config;
 
+#[cfg(feature = "benchmark")]
+use std::time::Instant;
 use std::{
     collections::HashSet,
     sync::mpsc::{Receiver, Sender},
     thread,
 };
 
-#[cfg(feature = "benchmark")]
-use std::time::Instant;
-
 use eframe::egui;
+use eframe::epaint::text::TextWrapMode;
 use egui::ahash::{HashMap, HashMapExt};
 use log::{debug, warn};
 use solvers::{
@@ -17,9 +17,8 @@ use solvers::{
     gf2,
 };
 
-use crate::lazy::Lazy;
-
 use self::config::Config;
+use crate::lazy::Lazy;
 
 pub struct Gui {
     board: Box<Binary>,
@@ -71,7 +70,7 @@ impl Gui {
     }
 
     pub fn draw_cell(&self, col: usize, row: usize, ui: &mut egui::Ui) -> egui::Response {
-        let active = self.board.get(col, row).map_or(false, |val| val >= 1);
+        let active = self.board.get(col, row).is_some_and(|val| val >= 1);
         let marked = self
             .solution
             .as_ref()
@@ -125,12 +124,12 @@ impl Gui {
 
     fn render(&mut self, ctx: &egui::Context) {
         let style = ctx.style();
-        let frame = egui::Frame::window(&style)
-            .inner_margin(egui::Margin::same(self.config.cell_size / 2.));
+        let frame =
+            egui::Frame::window(&style).inner_margin(egui::Margin::same(self.config.cell_size / 2));
 
         egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
             let window_margin = ui.spacing().window_margin;
-            ui.spacing_mut().item_spacing = egui::Vec2::splat(window_margin.left);
+            ui.spacing_mut().item_spacing = egui::Vec2::splat(window_margin.left.into());
 
             egui::ScrollArea::both().show(ui, |ui| {
                 ui.horizontal_top(|ui| {
@@ -177,11 +176,11 @@ impl Gui {
         let is_mac = !matches!(ctx.os(), egui::os::OperatingSystem::Mac);
 
         ui.vertical(|ui| {
-            ui.style_mut().wrap = Some(false);
+            ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
             ui.spacing_mut().item_spacing = egui::Vec2::splat(self.config.text_size);
 
             ui.collapsing(self.text("instructions.goal.header"), |ui| {
-                ui.style_mut().wrap = Some(true);
+                ui.style_mut().wrap_mode = Some(TextWrapMode::Wrap);
                 let description = egui::text::LayoutJob::single_section(
                     self.get_text("instructions.goal.description"),
                     egui::TextFormat {
@@ -279,7 +278,7 @@ impl Gui {
         ui.add_enabled_ui(enabled, |ui| {
             let clicked = ui
                 .add_sized(
-                    [self.config.cell_size, self.config.cell_size],
+                    [self.config.cell_size.into(), self.config.cell_size.into()],
                     egui::Button::new(text),
                 )
                 .highlight()
@@ -308,8 +307,11 @@ impl Gui {
 
         let button = egui::Button::new("").fill(color);
 
-        ui.add_sized([self.config.cell_size, self.config.cell_size], button)
-            .highlight()
+        ui.add_sized(
+            [self.config.cell_size.into(), self.config.cell_size.into()],
+            button,
+        )
+        .highlight()
     }
 
     fn resize_board(&mut self, new_cols: usize, new_rows: usize) {
@@ -381,7 +383,7 @@ impl Gui {
             .get_text_with_key(&self.language, &key)
             .map_or_else(
                 || {
-                    warn!("Translation with key {} not found", key);
+                    warn!("Translation with key {key} not found");
                     key.clone()
                 },
                 |val| val.to_string(),
