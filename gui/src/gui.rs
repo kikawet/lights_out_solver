@@ -370,7 +370,7 @@ impl Gui {
             return text.clone();
         }
 
-        if !self.config.tranlation_ctx.contains_key(&self.language) {
+        if !self.config.translation_ctx.contains_key(&self.language) {
             warn!(
                 "Language {} not loaded, using default translation",
                 &self.language
@@ -379,7 +379,7 @@ impl Gui {
 
         let text = self
             .config
-            .tranlation_ctx
+            .translation_ctx
             .get_text_with_key(&self.language, &key)
             .map_or_else(
                 || {

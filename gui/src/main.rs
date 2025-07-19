@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-mod adapter;
+mod deserializer;
 mod gui;
 mod lazy;
 
@@ -36,7 +36,7 @@ fn main() {
         .expect("Configuration must be valid");
 
     SimpleLogger::new()
-        .with_level(*config.log_level)
+        .with_level(config.log_level)
         .init()
         .expect("Unable to start logger");
 
