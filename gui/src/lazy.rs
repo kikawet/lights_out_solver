@@ -7,6 +7,7 @@
 /// This Enum is not a future and state is meant to be updated
 /// by manually no dependency graph should be assumed.
 ///
+#[derive(PartialEq)]
 pub enum Lazy<T> {
     /// Starting value
     Empty,
