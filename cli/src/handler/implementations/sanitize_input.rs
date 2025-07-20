@@ -1,16 +1,13 @@
-use crate::{
-    args::Origin,
-    chain_of_responsability::{
-        chainable::Chainable, handler::Handler, state::State, worker::Worker,
-    },
-    define_chainable,
-    solvers::board::Binary,
-};
+use solvers::board::Binary;
 
-define_chainable!(SanitizeWorker);
+use crate::args::Origin;
+use crate::handler::r#trait::Handler;
+use crate::handler::state::ValidState;
 
-impl SanitizeWorker {
-    /// Transformation are symectric so calling this twice with the same state is going to undo the changes
+pub struct SanitizeHandler;
+
+impl SanitizeHandler {
+    /// Transformation are symmetric so calling this twice with the same state is going to undo the changes
     /// It rotates the indices to the origin Top Left
     pub fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, location: Origin) {
         match location {
@@ -18,7 +15,7 @@ impl SanitizeWorker {
             Origin::BottomLeft => Self::reorder_rows(indices, rows, cols),
             Origin::BottomRight => Self::reorder_rows_cols(indices, rows, cols),
             Origin::TopLeft => { /*Do nothing 👀*/ }
-        };
+        }
     }
 
     fn reorder_cols(indices: &mut [usize], _rows: usize, cols: usize) {
@@ -53,23 +50,23 @@ impl SanitizeWorker {
     }
 }
 
-impl Handler for SanitizeWorker {
-    fn handle(&mut self, mut state: State) -> Result<State, clap::error::Error> {
-        let rows = state.input.rows;
-        let cols = state.input.cols;
-        let origin = state.input.origin_location;
+impl Handler<ValidState, ValidState> for SanitizeHandler {
+    fn handle(&self, mut state: ValidState) -> Result<ValidState, clap::error::Error> {
+        let rows = state.args.rows;
+        let cols = state.args.cols;
+        let origin = state.args.origin_location;
 
-        let lights = &mut state.input.lights;
+        let lights = &mut state.args.lights;
         lights.sort_unstable();
         lights.dedup();
         lights.iter_mut().for_each(|val| *val -= 1);
         Self::rotate_light_indices(lights, cols, rows, origin);
 
-        let simulation_steps = &mut state.input.simulation_steps;
+        let simulation_steps = &mut state.args.simulation_steps;
         simulation_steps.iter_mut().for_each(|val| *val -= 1);
         Self::rotate_light_indices(simulation_steps, cols, rows, origin);
 
-        state.board = Some(Box::new(Binary::new_from_positions(lights, cols, rows)));
+        state.board = Box::new(Binary::new_from_positions(lights, cols, rows));
 
         Ok(state)
     }

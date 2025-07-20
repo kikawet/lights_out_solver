@@ -1,0 +1,27 @@
+[package]
+name = "gui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+config = "0.15.13"
+derive_builder = "0.20.2"
+eframe = { version = "0.32.0" }
+egui = { version = "0.32.0", features = ["serde"] }
+json-gettext = "4.0.10"
+log = "0.4.27"
+#FIXME: hopefully there is a stable version by the time you read this
+puffin_egui = { git = "https://github.com/EmbarkStudios/puffin.git", rev = "refs/pull/244/head", optional = true }
+serde = "1.0.219"
+serde_json = "1.0.140"
+simple_logger = "5.0.0"
+solvers = { path = "../solvers" }
+
+[[bin]]
+name = "los-gui"
+path = "src/main.rs"
+
+[features]
+# Warning: this feature is insecure since puffin_egui is not updated to this egui version :(
+profiler = [ "dep:puffin_egui" ]

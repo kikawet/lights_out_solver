@@ -1,0 +1,22 @@
+{
+    "app.title": "Lights Out Solver",
+    "control.left": "⏴",
+    "control.right": "⏵",
+    "control.up": "⏶",
+    "control.down": "⏷",
+    "instructions.goal.header": "Goal",
+    "instructions.goal.description": "\"Lights Out Puzzle\" is a classic puzzle game where the goal is to activate all the cells on a board.\n\nToggling the state of one light affects its neighbors.",
+    "instructions.shortcuts.header": "Shortcuts",
+    "instructions.shortcuts.description.solve": ": Solve",
+    "instructions.shortcuts.description.reset": ": Reset",
+    "instructions.shortcuts.description.exit": ": Exit",
+    "instructions.states.header": "States",
+    "instructions.states.mixed.name": "Marked & Active",
+    "instructions.states.mixed.tooltip": "This tiles are marked and active at the same time",
+    "instructions.states.marked.name": "Marked",
+    "instructions.states.marked.tooltip": "Click all this tiles to solve the board",
+    "instructions.states.active.name": "Active",
+    "instructions.states.active.tooltip": "Activate tiles by directly clicking or by nearby cells",
+    "instructions.states.default.name": "Off",
+    "instructions.states.default.tooltip": "Default state of the cells you can toggle from active to this state"
+}

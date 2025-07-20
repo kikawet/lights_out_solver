@@ -1,5 +1,7 @@
 // Credit https://github.com/oovm/deus-rs/blob/master/src/solvers/state2.rs
 
+use crate::BoardCell;
+
 pub trait Board {
     fn size(&self) -> (usize, usize);
     fn cols(&self) -> usize;
@@ -7,12 +9,13 @@ pub trait Board {
     fn is_solved(&self) -> bool;
     fn trigger_coord(&mut self, col: usize, row: usize) -> &mut dyn Board;
     fn trigger_index(&mut self, index: usize) -> &mut dyn Board;
-    fn get(&self, col: usize, row: usize) -> Option<usize>;
+    fn get_index(&self, col: usize, row: usize) -> usize;
+    fn get(&self, col: usize, row: usize) -> BoardCell;
     fn set(&mut self, col: usize, row: usize, value: usize) -> bool;
     fn iter(&self) -> std::slice::Iter<'_, usize>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Binary {
     cols: usize,
     rows: usize,
@@ -49,10 +52,6 @@ impl Binary {
 
         Binary { cols, rows, board }
     }
-
-    fn get_index(&self, col: usize, row: usize) -> usize {
-        row * self.cols + col
-    }
 }
 
 impl Board for Binary {
@@ -68,43 +67,8 @@ impl Board for Binary {
         self.rows
     }
 
-    fn iter(&self) -> std::slice::Iter<'_, usize> {
-        self.board.iter()
-    }
-
-    fn get(&self, col: usize, row: usize) -> Option<usize> {
-        if col < self.cols && row < self.rows {
-            let index = self.get_index(col, row);
-            Some(self.board[index])
-        } else {
-            None
-        }
-    }
-
-    fn set(&mut self, col: usize, row: usize, value: usize) -> bool {
-        if col < self.cols && row < self.rows {
-            match value {
-                0..=1 => {
-                    let index = self.get_index(col, row);
-                    self.board[index] = value;
-                    true
-                }
-                _ => false,
-            }
-        } else {
-            false
-        }
-    }
-
     fn is_solved(&self) -> bool {
         self.board.iter().all(|val| *val == 1)
-    }
-
-    fn trigger_index(&mut self, index: usize) -> &mut dyn Board {
-        let col = index % self.cols;
-        let row = index / self.cols;
-
-        self.trigger_coord(col, row)
     }
 
     fn trigger_coord(&mut self, col: usize, row: usize) -> &mut dyn Board {
@@ -128,5 +92,44 @@ impl Board for Binary {
         switch(self, col + 1, row);
         switch(self, col, row + 1);
         self
+    }
+
+    fn trigger_index(&mut self, index: usize) -> &mut dyn Board {
+        let col = index % self.cols;
+        let row = index / self.cols;
+
+        self.trigger_coord(col, row)
+    }
+
+    fn get_index(&self, col: usize, row: usize) -> usize {
+        row * self.cols + col
+    }
+
+    fn get(&self, col: usize, row: usize) -> BoardCell {
+        if col < self.cols && row < self.rows {
+            let index = self.get_index(col, row);
+            Some(self.board[index])
+        } else {
+            None
+        }
+    }
+
+    fn set(&mut self, col: usize, row: usize, value: usize) -> bool {
+        if col < self.cols && row < self.rows {
+            match value {
+                0..=1 => {
+                    let index = self.get_index(col, row);
+                    self.board[index] = value;
+                    true
+                }
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+
+    fn iter(&self) -> std::slice::Iter<'_, usize> {
+        self.board.iter()
     }
 }
