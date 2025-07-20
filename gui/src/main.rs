@@ -1,15 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-mod deserializer;
 mod gui;
-mod lazy;
 
 #[macro_use]
 extern crate json_gettext;
 
+use gui::config;
 #[cfg(feature = "profiler")]
 use puffin_egui::puffin;
-use gui::config;
 use simple_logger::SimpleLogger;
 
 use crate::gui::Gui;

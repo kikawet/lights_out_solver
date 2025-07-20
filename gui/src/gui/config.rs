@@ -5,7 +5,7 @@ use json_gettext::{JSONGetText, JSONGetTextBuilder};
 use serde::de;
 use serde::{de::Unexpected, Deserialize};
 
-use crate::deserializer::option_deserializer;
+use crate::gui::deserializer::option_deserializer;
 
 #[derive(Debug, Builder)]
 #[builder(

@@ -1,4 +1,6 @@
 pub mod config;
+mod deserializer;
+mod lazy;
 
 use std::{
     collections::HashSet,
@@ -21,7 +23,7 @@ use solvers::{
 };
 
 use self::config::Config;
-use crate::lazy::Lazy;
+use lazy::Lazy;
 
 pub struct Gui {
     board: Binary,
