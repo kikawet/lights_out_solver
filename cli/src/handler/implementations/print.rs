@@ -1,18 +1,18 @@
+use std::io::Write;
+
 use log::debug;
 use solvers::board::Board;
 
-use crate::{
-    args::Display,
-    chain_of_responsability::{
-        chainable::Chainable, handler::Handler, implementations::sanitize_input::SanitizeWorker,
-        state::State, worker::Worker,
-    },
-    define_chainable,
-};
+use crate::args::Display;
+use crate::handler::implementations::sanitize_input::SanitizeHandler;
+use crate::handler::r#trait::HandlerMut;
+use crate::handler::state::SolvedState;
 
-define_chainable!(PrintWorker);
+pub struct PrintHandler<'a, T = ()> {
+    pub out: &'a mut T,
+}
 
-impl PrintWorker {
+impl<T> PrintHandler<'_, T> {
     pub fn board_to_vec(board: &(impl Board + ?Sized)) -> Vec<String> {
         board
             .iter()
@@ -41,40 +41,46 @@ impl PrintWorker {
     }
 }
 
-impl Handler for PrintWorker {
-    fn handle(&self, state: State) -> Result<State, clap::error::Error> {
+impl<T> HandlerMut<SolvedState, SolvedState> for PrintHandler<'_, T>
+where
+    T: Write,
+{
+    fn handle(&mut self, state: SolvedState) -> Result<SolvedState, clap::error::Error> {
         let display_mode = state.args.display_mode;
-        debug!("Display mode: {:?}", display_mode);
+        debug!("Display mode: {display_mode:?}");
         let Some(solution) = &state.solution else {
             return Ok(state);
         };
-        let board = state.board.as_deref().expect("Unable to access board");
+        let mut solution = solution.clone();
+        let (cols, rows) = state.board.size();
+
+        SanitizeHandler::rotate_light_indices(
+            &mut solution,
+            cols,
+            rows,
+            state.args.origin_location,
+        );
 
         if display_mode == Display::Simple || display_mode == Display::All {
-            // need to clone solution bc in display mode 'all' this is going to change the board
             let mut solution = solution.clone();
             solution.iter_mut().for_each(|val| *val += 1);
+            solution.sort_unstable();
 
-            let (cols, rows) = board.size();
-
-            SanitizeWorker::rotate_light_indices(
-                &mut solution,
-                cols,
-                rows,
-                state.args.origin_location,
-            );
-
-            println!("{solution:?}");
+            writeln!(&mut self.out, "{solution:?}")?;
         }
 
         if display_mode == Display::Draw || display_mode == Display::All {
-            let mut mapped_board = Self::board_to_vec(board);
+            let mut mapped_board = Self::board_to_vec(state.board.as_ref());
 
             for (order, position) in solution.iter().enumerate() {
                 mapped_board[*position] = order.to_string();
             }
 
-            println!("{}", Self::vec_to_str(&mapped_board, board.cols()));
+            writeln!(
+                &mut self.out,
+                "{}",
+                Self::vec_to_str(&mapped_board, state.board.cols())
+            )?;
         }
 
         Ok(state)

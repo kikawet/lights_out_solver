@@ -1,16 +1,16 @@
 ///
-/// Enum to manage state of defered computed values
+/// Enum to manage state of deferred computed values
 ///
 /// This enum should be used while waiting for async results,
-/// consider Option if just Empty and Completed states are required
+/// consider Option when only Empty and Completed states are required
 ///
-/// This Enum is not a future and state is meant to be updated
-/// by manually no dependency graph should be assumed.
+/// This Enum is not a future and state is meant to be computed and updated manually.
 ///
+#[derive(PartialEq)]
 pub enum Lazy<T> {
     /// Starting value
     Empty,
-    /// Resource is being computed asynchronously
+    /// Resource is being computed
     Requested,
     /// Resource computation completed, you can use now the result
     Completed(T),

@@ -1,6 +1,5 @@
-use crate::Solution;
-
 use super::board::{Binary, Board};
+use crate::Solution;
 
 pub fn solve(board: &dyn Board) -> Solution {
     let mut solution: Vec<usize> = vec![];
@@ -63,7 +62,7 @@ fn solve_recursive(
                         *best_solution = Some(solution.clone());
                     }
                 }
-            };
+            }
         }
 
         available_moves[i] = true;

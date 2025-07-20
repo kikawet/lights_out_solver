@@ -1,25 +1,21 @@
-use crate::Solution;
-
 use super::board::{Binary, Board};
+use crate::Solution;
 
 pub fn solve(board: &dyn Board) -> Solution {
     let (cols, rows) = board.size();
 
-    let mut matrix = vec![vec![0usize; rows * cols]; rows * cols];
-    let mut blank = Binary::new_blank(cols, rows);
+    let mut matrix = Vec::with_capacity(cols * rows);
     let mut expected = vec![0usize; cols * rows];
 
     for row in 0..rows {
         for col in 0..cols {
             let index = row * cols + col;
+
+            let mut blank = Binary::new_blank(cols, rows);
             blank.trigger_coord(col, row);
-            for sub_row in 0..rows {
-                for sub_col in 0..cols {
-                    let sub_index = sub_row * cols + sub_col;
-                    matrix[index][sub_index] = blank.get(sub_col, sub_row)?;
-                }
-            }
-            blank.trigger_coord(col, row);
+            let permutation = blank.iter().as_slice().into();
+
+            matrix.push(permutation);
             expected[index] = (board.get(col, row)? + 1) % 2;
         }
     }
@@ -46,7 +42,7 @@ fn gauss_jordan_zf2(mut mat: Vec<Vec<usize>>, expected: Vec<usize>) -> Solution 
     }
 
     fn add(m: &mut [Vec<usize>], bs: &mut [usize], i: usize, j: usize) {
-        assert!(i != j, "trying to add row to itself");
+        assert_ne!(i, j, "trying to add row to itself");
 
         for x in 0..m[i].len() {
             m[i][x] += m[j][x];

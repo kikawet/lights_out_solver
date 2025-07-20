@@ -1,31 +1,27 @@
-use crate::{
-    chain_of_responsability::{
-        chainable::Chainable, handler::Handler, state::State, worker::Worker,
-    },
-    define_chainable,
-};
 use log::debug;
 use solvers::board::Board;
 
-use super::print::PrintWorker;
+use super::print::PrintHandler;
+use crate::handler::r#trait::Handler;
+use crate::handler::state::ValidState;
 
-define_chainable!(SimulatorWorker);
+pub struct SimulatorHandler;
 
-impl SimulatorWorker {
+impl SimulatorHandler {
     fn prettify_board(board: &(impl Board + ?Sized)) -> String {
-        PrintWorker::vec_to_str(&PrintWorker::board_to_vec(board), board.cols())
+        PrintHandler::<()>::vec_to_str(&PrintHandler::<()>::board_to_vec(board), board.cols())
     }
 }
 
-impl Handler for SimulatorWorker {
-    fn handle(&self, mut state: State) -> Result<State, clap::error::Error> {
-        let board = state.board.as_deref_mut().expect("Unable to access board");
+impl Handler<ValidState, ValidState> for SimulatorHandler {
+    fn handle(&self, mut state: ValidState) -> Result<ValidState, clap::error::Error> {
+        let board = state.board.as_mut();
         let steps = &state.args.simulation_steps;
         debug!(
             "Board before the simulation:\n {}",
             Self::prettify_board(board)
         );
-        debug!("Steps to simulate: {:?}", steps);
+        debug!("Steps to simulate: {steps:?}");
 
         for (step, node_to_trigger) in steps.iter().enumerate() {
             board.trigger_index(*node_to_trigger);

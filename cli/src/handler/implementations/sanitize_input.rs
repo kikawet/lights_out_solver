@@ -1,17 +1,13 @@
 use solvers::board::Binary;
 
-use crate::{
-    args::Origin,
-    chain_of_responsability::{
-        chainable::Chainable, handler::Handler, state::State, worker::Worker,
-    },
-    define_chainable,
-};
+use crate::args::Origin;
+use crate::handler::r#trait::Handler;
+use crate::handler::state::ValidState;
 
-define_chainable!(SanitizeWorker);
+pub struct SanitizeHandler;
 
-impl SanitizeWorker {
-    /// Transformation are symectric so calling this twice with the same state is going to undo the changes
+impl SanitizeHandler {
+    /// Transformation are symmetric so calling this twice with the same state is going to undo the changes
     /// It rotates the indices to the origin Top Left
     pub fn rotate_light_indices(indices: &mut [usize], cols: usize, rows: usize, location: Origin) {
         match location {
@@ -19,7 +15,7 @@ impl SanitizeWorker {
             Origin::BottomLeft => Self::reorder_rows(indices, rows, cols),
             Origin::BottomRight => Self::reorder_rows_cols(indices, rows, cols),
             Origin::TopLeft => { /*Do nothing 👀*/ }
-        };
+        }
     }
 
     fn reorder_cols(indices: &mut [usize], _rows: usize, cols: usize) {
@@ -54,8 +50,8 @@ impl SanitizeWorker {
     }
 }
 
-impl Handler for SanitizeWorker {
-    fn handle(&self, mut state: State) -> Result<State, clap::error::Error> {
+impl Handler<ValidState, ValidState> for SanitizeHandler {
+    fn handle(&self, mut state: ValidState) -> Result<ValidState, clap::error::Error> {
         let rows = state.args.rows;
         let cols = state.args.cols;
         let origin = state.args.origin_location;
@@ -70,7 +66,7 @@ impl Handler for SanitizeWorker {
         simulation_steps.iter_mut().for_each(|val| *val -= 1);
         Self::rotate_light_indices(simulation_steps, cols, rows, origin);
 
-        state.board = Some(Box::new(Binary::new_from_positions(lights, cols, rows)));
+        state.board = Box::new(Binary::new_from_positions(lights, cols, rows));
 
         Ok(state)
     }
