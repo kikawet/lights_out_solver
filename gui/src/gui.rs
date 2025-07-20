@@ -13,8 +13,6 @@ use eframe::epaint::text::TextWrapMode;
 use egui::ahash::{HashMap, HashMapExt};
 use log::{debug, warn};
 #[cfg(feature = "profiler")]
-use puffin_egui;
-#[cfg(feature = "profiler")]
 use puffin_egui::puffin;
 
 use solvers::{
@@ -67,16 +65,16 @@ impl Gui {
 
     pub fn draw_cell(&self, col: usize, row: usize, ui: &mut egui::Ui) -> egui::Response {
         #[cfg(feature = "profiler")]
-        {
-            puffin::profile_function!();
-            let scope = puffin::profile_scope_custom!("is_active");
-        }
+        puffin::profile_function!();
+        #[cfg(feature = "profiler")]
+        let scope = puffin::profile_scope_custom!("is_active");
+
         let active = self.board.get(col, row).is_some_and(|val| val >= 1);
         #[cfg(feature = "profiler")]
-        {
-            drop(scope);
-            let scope = puffin::profile_scope_custom!("is_marked");
-        }
+        drop(scope);
+        #[cfg(feature = "profiler")]
+        let scope = puffin::profile_scope_custom!("is_marked");
+
         let marked = self
             .solution
             .as_ref()
@@ -85,12 +83,15 @@ impl Gui {
                 solution.as_ref().is_some_and(|s| s.contains(&index))
             })
             .unwrap_or_default();
+
         #[cfg(feature = "profiler")]
         drop(scope);
+
         let loading = self.solution == Lazy::Requested;
 
         #[cfg(feature = "profiler")]
         puffin::profile_scope!("draw_cell_base");
+
         ui.add_enabled_ui(!loading, |ui| {
             self.draw_cell_base(ui, marked, active)
                 .on_hover_cursor(egui::CursorIcon::PointingHand)
